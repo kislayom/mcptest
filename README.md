@@ -1,5 +1,7 @@
 # mcptest
 
+[![ci](https://github.com/kislayom/mcptest/actions/workflows/ci.yml/badge.svg)](https://github.com/kislayom/mcptest/actions/workflows/ci.yml)
+
 **The test suite + trust layer for MCP servers.**
 Point it at any [Model Context Protocol](https://modelcontextprotocol.io) server and find out what's broken — in seconds, in your terminal, in CI.
 
@@ -36,6 +38,16 @@ mcptest doctor https://your-mcp-server.example.com --json   # machine-readable
 - [ ] `mcptest run` — code-first test DSL (deterministic core + recorded, advisory semantic checks)
 - [ ] JUnit / SARIF reporters + a GitHub Action
 - [ ] Watchtower — hosted, deterministic drift monitoring of the upstream servers you depend on
+
+## Development
+
+```bash
+npm install
+npm run build
+npm test          # vitest
+```
+
+A testing tool ought to be tested — every deterministic check is covered, and CI runs the suite on each push.
 
 ## License
 
