@@ -1,4 +1,5 @@
 import pc from "picocolors";
+import type { DriftReport } from "./drift.js";
 import type { CertResult } from "./score.js";
 import type { TestResult } from "./run.js";
 import type { DoctorResult, Severity } from "./types.js";
@@ -49,5 +50,33 @@ export function printRun(file: string, results: TestResult[]): void {
   const passed = results.filter((r) => r.passed).length;
   const line = `  ${passed}/${results.length} passed`;
   out.push(passed === results.length ? pc.green(pc.bold(line)) : pc.red(pc.bold(line)), "");
+  process.stdout.write(out.join("\n") + "\n");
+}
+
+export function printDrift(report: DriftReport): void {
+  const out: string[] = ["", pc.bold(`mcpcert drift — ${report.target}`)];
+
+  if (!report.drifted) {
+    out.push(pc.green("  ✔ no drift — server matches the baseline"), "");
+    process.stdout.write(out.join("\n") + "\n");
+    return;
+  }
+
+  for (const c of report.changes) {
+    const icon =
+      c.kind === "suspicious"
+        ? pc.red("⚠ SUSPICIOUS")
+        : c.kind === "added"
+          ? pc.yellow("+ added     ")
+          : c.kind === "removed"
+            ? pc.yellow("- removed   ")
+            : pc.yellow("~ changed   ");
+    out.push(`  ${icon}  ${c.tool}  ${pc.dim(c.detail)}`);
+  }
+
+  const head = report.suspicious
+    ? pc.red(pc.bold(`  DRIFT DETECTED — possible rug-pull (${report.changes.length} change(s))`))
+    : pc.yellow(pc.bold(`  drift detected (${report.changes.length} change(s))`));
+  out.push("", head, "");
   process.stdout.write(out.join("\n") + "\n");
 }

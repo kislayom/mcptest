@@ -75,6 +75,17 @@ mcpcert scan --file servers.txt --json
 
 Scores every server and ranks them — the seed of a public "state of MCP" board.
 
+## Drift detection — the "rug pull" check
+
+A tool's description or schema can change *after* you've trusted it. Snapshot a server, then check for drift in CI:
+
+```bash
+mcpcert snapshot "npx -y @modelcontextprotocol/server-filesystem /tmp" -o baseline.json
+mcpcert diff     "npx -y @modelcontextprotocol/server-filesystem /tmp" --baseline baseline.json
+```
+
+`diff` exits non-zero on any change and **escalates a description that turns injection-shaped to a suspected rug-pull.** Deterministic, no LLM. *(Continuous, hosted monitoring is the Watchtower.)*
+
 ## Roadmap
 
 - [x] `doctor` — HTTP reachability, discovery manifest, CORS

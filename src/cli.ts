@@ -1,10 +1,11 @@
 #!/usr/bin/env node
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { Command } from "commander";
 import pc from "picocolors";
+import { diffSnapshots, snapshot, type Snapshot } from "./drift.js";
 import { runDoctor } from "./doctor.js";
 import { junitXml } from "./junit.js";
-import { printReport, printRun, printScore } from "./report.js";
+import { printDrift, printReport, printRun, printScore } from "./report.js";
 import { loadTestFiles, runTestFile, type TestResult } from "./run.js";
 import { leaderboardTable, scanTargets } from "./scan.js";
 import { badgeMarkdown, certify } from "./score.js";
@@ -14,7 +15,7 @@ const program = new Command();
 program
   .name("mcpcert")
   .description("The test suite + trust layer for MCP servers")
-  .version("0.2.0");
+  .version("0.3.0");
 
 program
   .command("doctor")
@@ -81,6 +82,36 @@ program
     if (opts.json) process.stdout.write(JSON.stringify(ranked, null, 2) + "\n");
     else process.stdout.write("\n" + leaderboardTable(ranked) + "\n\n");
     process.exit(0);
+  });
+
+program
+  .command("snapshot")
+  .argument("<target>", "MCP server URL (http/https) or a stdio command (quote it)")
+  .description("Capture a baseline fingerprint of a server's tools (for drift detection)")
+  .option("-o, --out <file>", "write the snapshot JSON to a file (default: stdout)")
+  .action(async (target: string, opts: { out?: string }) => {
+    const snap = await snapshot(target);
+    const json = JSON.stringify(snap, null, 2);
+    if (opts.out) {
+      writeFileSync(opts.out, json + "\n");
+      process.stderr.write(`snapshot written to ${opts.out} (${snap.tools.length} tool(s))\n`);
+    } else {
+      process.stdout.write(json + "\n");
+    }
+  });
+
+program
+  .command("diff")
+  .argument("<target>", "MCP server URL (http/https) or a stdio command (quote it)")
+  .requiredOption("--baseline <file>", "a snapshot file produced by 'mcpcert snapshot'")
+  .description("Detect drift: compare a live server against a saved snapshot (the rug-pull check)")
+  .option("--json", "output machine-readable JSON")
+  .action(async (target: string, opts: { baseline: string; json?: boolean }) => {
+    const baseline = JSON.parse(readFileSync(opts.baseline, "utf8")) as Snapshot;
+    const report = diffSnapshots(baseline, await snapshot(target));
+    if (opts.json) process.stdout.write(JSON.stringify(report, null, 2) + "\n");
+    else printDrift(report);
+    process.exit(report.drifted ? 1 : 0);
   });
 
 program.parseAsync(process.argv).catch((err: unknown) => {
