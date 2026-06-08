@@ -35,11 +35,21 @@ mcpcert doctor https://your-mcp-server.example.com --json   # machine-readable
 
 `doctor` is **100% deterministic** — no LLM is ever in this path, so it doesn't flake in CI. It exits non-zero when any check fails.
 
+## Score & badge
+
+```bash
+mcpcert score https://your-mcp-server.example.com          # MCP Cert Score (0–100) + grade
+mcpcert score https://your-mcp-server.example.com --badge  # Markdown badge for your README
+```
+
+`score` exits non-zero unless the server is **Certified** (≥80/100 with no failing checks) — so you can gate your own MCP server in CI.
+
 ## Roadmap
 
 - [x] `doctor` — HTTP reachability, discovery manifest, CORS
 - [x] MCP protocol checks via `@modelcontextprotocol/sdk` — stdio + Streamable HTTP, handshake, `tools/list`
 - [x] Deterministic lint — input-schema validity, missing descriptions, injection-shaped text, leaked secrets
+- [x] `mcpcert score` — 0–100 MCP Cert Score, letter grade, certification + badge
 - [ ] Deep JSON-Schema validation (ajv) + SSE transport
 - [ ] `mcpcert run` — code-first test DSL (deterministic core + recorded, advisory semantic checks)
 - [ ] JUnit / SARIF reporters + a GitHub Action
