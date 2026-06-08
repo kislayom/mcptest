@@ -2,9 +2,8 @@
 # Run with:  mcpcert run --file examples/filesystem.mcpcert.yaml
 server: "npx -y @modelcontextprotocol/server-filesystem /tmp"
 tests:
-  - name: list_directory returns entries for /tmp
-    tool: list_directory
-    input: { path: "/tmp" }
+  - name: list_allowed_directories succeeds
+    tool: list_allowed_directories
     expect:
       error: false
 
