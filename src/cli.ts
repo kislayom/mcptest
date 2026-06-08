@@ -7,7 +7,7 @@ import { printReport } from "./report.js";
 const program = new Command();
 
 program
-  .name("mcptest")
+  .name("mcpcert")
   .description("The test suite + trust layer for MCP servers")
   .version("0.0.1");
 
@@ -29,6 +29,6 @@ program
   });
 
 program.parseAsync(process.argv).catch((err: unknown) => {
-  process.stderr.write(pc.red("mcptest: ") + (err instanceof Error ? err.message : String(err)) + "\n");
+  process.stderr.write(pc.red("mcpcert: ") + (err instanceof Error ? err.message : String(err)) + "\n");
   process.exit(2);
 });

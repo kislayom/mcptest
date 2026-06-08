@@ -3,7 +3,7 @@ import { classifyTarget, runProtocolChecks } from "./protocol.js";
 import type { CheckResult, DoctorResult } from "./types.js";
 
 /**
- * `mcptest doctor` — zero-config, deterministic conformance + health scan.
+ * `mcpcert doctor` — zero-config, deterministic conformance + health scan.
  *
  * URL targets get the HTTP-surface checks (reachability, discovery manifest,
  * CORS) plus the MCP protocol checks. stdio command targets get the protocol

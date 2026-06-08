@@ -1,11 +1,11 @@
-# mcptest
+# mcpcert
 
-[![ci](https://github.com/kislayom/mcptest/actions/workflows/ci.yml/badge.svg)](https://github.com/kislayom/mcptest/actions/workflows/ci.yml)
+[![ci](https://github.com/kislayom/mcpcert/actions/workflows/ci.yml/badge.svg)](https://github.com/kislayom/mcpcert/actions/workflows/ci.yml)
 
 **The test suite + trust layer for MCP servers.**
 Point it at any [Model Context Protocol](https://modelcontextprotocol.io) server and find out what's broken — in seconds, in your terminal, in CI.
 
-> **Status: early.** `mcptest doctor` — the zero-config health + conformance scan — is taking shape first. The code-first test DSL and the hosted drift-monitor follow. See the [roadmap](#roadmap).
+> **Status: early.** `mcpcert doctor` — the zero-config health + conformance scan — is taking shape first. The code-first test DSL and the hosted drift-monitor follow. See the [roadmap](#roadmap).
 
 ## Why
 
@@ -16,21 +16,21 @@ In every other corner of software you'd never ship an API without tests in CI. T
 ## Install
 
 ```bash
-npm i -g mcptest
+npm i -g mcpcert
 # or run it without installing:
-npx mcptest doctor https://your-server.example.com
+npx mcpcert doctor https://your-server.example.com
 ```
 
 ## Usage
 
 ```bash
 # remote (Streamable HTTP) server
-mcptest doctor https://your-mcp-server.example.com
+mcpcert doctor https://your-mcp-server.example.com
 
 # local stdio server — quote the whole command
-mcptest doctor "npx -y @modelcontextprotocol/server-filesystem /tmp"
+mcpcert doctor "npx -y @modelcontextprotocol/server-filesystem /tmp"
 
-mcptest doctor https://your-mcp-server.example.com --json   # machine-readable
+mcpcert doctor https://your-mcp-server.example.com --json   # machine-readable
 ```
 
 `doctor` is **100% deterministic** — no LLM is ever in this path, so it doesn't flake in CI. It exits non-zero when any check fails.
@@ -41,7 +41,7 @@ mcptest doctor https://your-mcp-server.example.com --json   # machine-readable
 - [x] MCP protocol checks via `@modelcontextprotocol/sdk` — stdio + Streamable HTTP, handshake, `tools/list`
 - [x] Deterministic lint — input-schema validity, missing descriptions, injection-shaped text, leaked secrets
 - [ ] Deep JSON-Schema validation (ajv) + SSE transport
-- [ ] `mcptest run` — code-first test DSL (deterministic core + recorded, advisory semantic checks)
+- [ ] `mcpcert run` — code-first test DSL (deterministic core + recorded, advisory semantic checks)
 - [ ] JUnit / SARIF reporters + a GitHub Action
 - [ ] Watchtower — hosted, deterministic drift monitoring of the upstream servers you depend on
 

@@ -24,7 +24,7 @@ export function classifyTarget(target: string): "http" | "stdio" {
 export async function runProtocolChecks(target: string): Promise<CheckResult[]> {
   const checks: CheckResult[] = [];
   const kind = classifyTarget(target);
-  const client = new Client({ name: "mcptest", version: "0.0.1" }, { capabilities: {} });
+  const client = new Client({ name: "mcpcert", version: "0.0.1" }, { capabilities: {} });
 
   const transport =
     kind === "http"

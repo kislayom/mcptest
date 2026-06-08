@@ -9,7 +9,7 @@ const glyph: Record<Severity, string> = {
 };
 
 export function printReport(r: DoctorResult): void {
-  const out: string[] = ["", pc.bold(`mcptest doctor — ${r.target}`), ""];
+  const out: string[] = ["", pc.bold(`mcpcert doctor — ${r.target}`), ""];
 
   for (const c of r.checks) {
     out.push(`  ${glyph[c.severity]} ${c.title}`);
