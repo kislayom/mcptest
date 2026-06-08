@@ -1,0 +1,13 @@
+# Gate your MCP server's trust score on every push / PR.
+# Copy this to .github/workflows/mcpcert.yml
+name: mcpcert
+on: [push, pull_request]
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: kislayom/mcpcert@v0.5.0
+        with:
+          target: "npx -y @modelcontextprotocol/server-filesystem /tmp"
+          command: score # fails the build unless the server is Certified (>=80, no failures)

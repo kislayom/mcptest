@@ -1,0 +1,22 @@
+name: "mcpcert"
+description: "Score, test, and gate an MCP server's trust & conformance in CI"
+branding:
+  icon: "shield"
+  color: "green"
+inputs:
+  target:
+    description: "MCP server URL (http/https) or a stdio command"
+    required: true
+  command:
+    description: "mcpcert subcommand: score | doctor | report | run | diff"
+    required: false
+    default: "score"
+  args:
+    description: "extra arguments passed to mcpcert (e.g. --baseline base.json)"
+    required: false
+    default: ""
+runs:
+  using: "composite"
+  steps:
+    - shell: bash
+      run: npx -y mcpcert@latest ${{ inputs.command }} "${{ inputs.target }}" ${{ inputs.args }}

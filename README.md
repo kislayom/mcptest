@@ -90,6 +90,19 @@ mcpcert diff     "npx -y @modelcontextprotocol/server-filesystem /tmp" --baselin
 
 `diff` exits non-zero on any change and **escalates a description that turns injection-shaped to a suspected rug-pull.** Deterministic, no LLM. *(Continuous, hosted monitoring is the Watchtower.)*
 
+## CI (GitHub Action)
+
+Gate your MCP server's trust score on every PR:
+
+```yaml
+- uses: kislayom/mcpcert@v0.5.0
+  with:
+    target: "npx -y your-mcp-server"
+    command: score      # non-zero exit unless Certified (≥80, no failing checks)
+```
+
+Works with `score`, `doctor`, `report`, `run`, and `diff`.
+
 ## Roadmap
 
 - [x] `doctor` — HTTP reachability, discovery manifest, CORS
