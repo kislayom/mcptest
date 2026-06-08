@@ -99,6 +99,9 @@ mcpcert diff     "npx -y @modelcontextprotocol/server-filesystem /tmp" --baselin
 - [x] Deep recursive schema validation + SSE transport fallback
 - [x] `mcpcert run` — code-first YAML test DSL (deterministic) + JUnit reporter
 - [x] `mcpcert scan` — multi-server leaderboard
+- [x] `mcpcert snapshot` / `diff` — drift / rug-pull detection
+- [x] `mcpcert report` — Markdown certification report + capability-risk audit
+- [x] richer `run` assertions — structured fields, latency budgets, secret-leak
 - [ ] Recorded, advisory semantic (LLM) assertions for `run`
 - [ ] JUnit / SARIF reporters + a GitHub Action
 - [ ] Watchtower — hosted, deterministic drift monitoring of the upstream servers you depend on

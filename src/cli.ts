@@ -5,17 +5,20 @@ import pc from "picocolors";
 import { diffSnapshots, snapshot, type Snapshot } from "./drift.js";
 import { runDoctor } from "./doctor.js";
 import { junitXml } from "./junit.js";
+import { certificationMarkdown } from "./markdown.js";
 import { printDrift, printReport, printRun, printScore } from "./report.js";
 import { loadTestFiles, runTestFile, type TestResult } from "./run.js";
 import { leaderboardTable, scanTargets } from "./scan.js";
 import { badgeMarkdown, certify } from "./score.js";
+import { assessRisks } from "./security.js";
+import { listToolsOf } from "./transport.js";
 
 const program = new Command();
 
 program
   .name("mcpcert")
   .description("The test suite + trust layer for MCP servers")
-  .version("0.4.0");
+  .version("0.5.0");
 
 program
   .command("doctor")
@@ -40,6 +43,25 @@ program
     if (opts.badge) process.stdout.write(badgeMarkdown(cert) + "\n");
     else if (opts.json) process.stdout.write(JSON.stringify(cert, null, 2) + "\n");
     else printScore(cert);
+    process.exit(cert.certified ? 0 : 1);
+  });
+
+program
+  .command("report")
+  .argument("<target>", "MCP server URL (http/https) or a stdio command (quote it)")
+  .description("Generate a full Markdown certification report (checks, tools, capability risk)")
+  .option("-o, --out <file>", "write the report to a file (default: stdout)")
+  .action(async (target: string, opts: { out?: string }) => {
+    const result = await runDoctor(target);
+    const cert = certify(result);
+    const tools = await listToolsOf(target);
+    const md = certificationMarkdown({ target, result, cert, tools, risks: assessRisks(tools) });
+    if (opts.out) {
+      writeFileSync(opts.out, md);
+      process.stderr.write(`report written to ${opts.out}\n`);
+    } else {
+      process.stdout.write(md);
+    }
     process.exit(cert.certified ? 0 : 1);
   });
 

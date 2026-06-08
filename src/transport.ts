@@ -2,6 +2,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import type { Tool } from "./lint.js";
 
 /** http(s) URL -> HTTP transport; anything else -> a stdio command. */
 export function classifyTarget(target: string): "http" | "stdio" {
@@ -47,6 +48,17 @@ export async function openClient(target: string, info = DEFAULT_INFO): Promise<O
     } catch (sseErr) {
       throw new Error(`Streamable HTTP failed (${msg(streamErr)}); SSE failed (${msg(sseErr)})`);
     }
+  }
+}
+
+/** Connect, list tools, disconnect — a convenience for read-only inspections. */
+export async function listToolsOf(target: string): Promise<Tool[]> {
+  const opened = await openClient(target);
+  try {
+    const res = await opened.client.listTools();
+    return res.tools.map((t) => ({ name: t.name, description: t.description, inputSchema: t.inputSchema }));
+  } finally {
+    await opened.close();
   }
 }
 
