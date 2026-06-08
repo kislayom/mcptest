@@ -1,5 +1,6 @@
 import pc from "picocolors";
 import type { CertResult } from "./score.js";
+import type { TestResult } from "./run.js";
 import type { DoctorResult, Severity } from "./types.js";
 
 const glyph: Record<Severity, string> = {
@@ -36,5 +37,17 @@ export function printScore(cert: CertResult): void {
     out.push(pc.dim(`  run 'mcpcert doctor ${t}' for the full breakdown`));
   }
   out.push("");
+  process.stdout.write(out.join("\n") + "\n");
+}
+
+export function printRun(file: string, results: TestResult[]): void {
+  const out: string[] = ["", pc.bold(file)];
+  for (const r of results) {
+    const g = r.passed ? pc.green("✔") : pc.red("✘");
+    out.push(`  ${g} ${r.name}${r.passed ? "" : pc.dim(`  — ${r.detail}`)}`);
+  }
+  const passed = results.filter((r) => r.passed).length;
+  const line = `  ${passed}/${results.length} passed`;
+  out.push(passed === results.length ? pc.green(pc.bold(line)) : pc.red(pc.bold(line)), "");
   process.stdout.write(out.join("\n") + "\n");
 }

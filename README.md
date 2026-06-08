@@ -44,14 +44,47 @@ mcpcert score https://your-mcp-server.example.com --badge  # Markdown badge for 
 
 `score` exits non-zero unless the server is **Certified** (≥80/100 with no failing checks) — so you can gate your own MCP server in CI.
 
+## Test DSL (`run`)
+
+Write declarative tests next to your server in a `*.mcpcert.yaml` file:
+
+```yaml
+server: "npx -y @modelcontextprotocol/server-filesystem /tmp"
+tests:
+  - name: list_directory returns entries
+    tool: list_directory
+    input: { path: "/tmp" }
+    expect:
+      error: false
+      contains: "tmp"
+```
+
+```bash
+mcpcert run                              # runs *.mcpcert.yaml in the current dir
+mcpcert run --reporter junit > junit.xml # JUnit for CI
+```
+
+Assertions are deterministic — no LLM in the path, so it never flakes.
+
+## Leaderboard (`scan`)
+
+```bash
+mcpcert scan "npx -y @modelcontextprotocol/server-filesystem /tmp" https://another-server.example.com
+mcpcert scan --file servers.txt --json
+```
+
+Scores every server and ranks them — the seed of a public "state of MCP" board.
+
 ## Roadmap
 
 - [x] `doctor` — HTTP reachability, discovery manifest, CORS
 - [x] MCP protocol checks via `@modelcontextprotocol/sdk` — stdio + Streamable HTTP, handshake, `tools/list`
 - [x] Deterministic lint — input-schema validity, missing descriptions, injection-shaped text, leaked secrets
 - [x] `mcpcert score` — 0–100 MCP Cert Score, letter grade, certification + badge
-- [ ] Deep JSON-Schema validation (ajv) + SSE transport
-- [ ] `mcpcert run` — code-first test DSL (deterministic core + recorded, advisory semantic checks)
+- [x] Deep recursive schema validation + SSE transport fallback
+- [x] `mcpcert run` — code-first YAML test DSL (deterministic) + JUnit reporter
+- [x] `mcpcert scan` — multi-server leaderboard
+- [ ] Recorded, advisory semantic (LLM) assertions for `run`
 - [ ] JUnit / SARIF reporters + a GitHub Action
 - [ ] Watchtower — hosted, deterministic drift monitoring of the upstream servers you depend on
 

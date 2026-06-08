@@ -1,7 +1,7 @@
 /**
- * Deterministic, pattern-based lint over a server's advertised tools.
- * No LLM here — pure functions over the tool list, so it's trivially testable
- * and never flakes in CI.
+ * Deterministic, pattern-based lint over a server's advertised tools, plus a
+ * recursive well-formedness check on each tool's JSON-Schema. No LLM here —
+ * pure functions over the tool list, trivially testable, never flaky in CI.
  */
 
 export interface Tool {
@@ -37,17 +37,53 @@ const SECRET_PATTERNS: { re: RegExp; what: string }[] = [
   { re: /\b(api[\s_-]?key|secret|token|password)\b\s*[:=]\s*["']?[A-Za-z0-9_-]{12,}/i, what: "inline credential" },
 ];
 
-/** Returns a human-readable problem with a tool's inputSchema, or null if it looks well-formed. */
-export function schemaIssue(schema: unknown): string | null {
-  if (schema == null || typeof schema !== "object") return "missing or non-object inputSchema";
+const VALID_TYPES = new Set(["object", "array", "string", "number", "integer", "boolean", "null"]);
+
+/**
+ * Returns the first well-formedness problem with a JSON-Schema, or null.
+ * Recurses through `properties` and `items`. The top-level inputSchema must be
+ * an object schema (MCP tools take an object of arguments).
+ */
+export function schemaIssue(schema: unknown, path = "inputSchema"): string | null {
+  if (schema == null) return `${path} is missing`;
+  if (typeof schema !== "object" || Array.isArray(schema)) return `${path} must be an object schema`;
+
   const s = schema as Record<string, unknown>;
-  if (s.type !== "object") return `inputSchema.type should be "object" (got ${JSON.stringify(s.type)})`;
-  if (s.properties != null && (typeof s.properties !== "object" || Array.isArray(s.properties))) {
-    return "inputSchema.properties must be an object";
+
+  if (path === "inputSchema" && s.type !== "object") {
+    return `inputSchema.type should be "object" (got ${JSON.stringify(s.type)})`;
   }
-  if (s.required != null && !(Array.isArray(s.required) && s.required.every((x) => typeof x === "string"))) {
-    return "inputSchema.required must be an array of strings";
+
+  if (s.type !== undefined) {
+    const types = Array.isArray(s.type) ? s.type : [s.type];
+    for (const t of types) {
+      if (typeof t !== "string" || !VALID_TYPES.has(t)) return `${path}.type has an invalid value ${JSON.stringify(t)}`;
+    }
   }
+
+  if (s.required !== undefined && !(Array.isArray(s.required) && s.required.every((x) => typeof x === "string"))) {
+    return `${path}.required must be an array of strings`;
+  }
+
+  if (s.enum !== undefined && !Array.isArray(s.enum)) {
+    return `${path}.enum must be an array`;
+  }
+
+  if (s.properties !== undefined) {
+    if (typeof s.properties !== "object" || s.properties === null || Array.isArray(s.properties)) {
+      return `${path}.properties must be an object`;
+    }
+    for (const [key, value] of Object.entries(s.properties as Record<string, unknown>)) {
+      const issue = schemaIssue(value, `${path}.properties.${key}`);
+      if (issue) return issue;
+    }
+  }
+
+  if (s.items !== undefined) {
+    const issue = schemaIssue(s.items, `${path}.items`);
+    if (issue) return issue;
+  }
+
   return null;
 }
 

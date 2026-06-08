@@ -1,0 +1,15 @@
+# Example mcpcert test file.
+# Run with:  mcpcert run --file examples/filesystem.mcpcert.yaml
+server: "npx -y @modelcontextprotocol/server-filesystem /tmp"
+tests:
+  - name: list_directory returns entries for /tmp
+    tool: list_directory
+    input: { path: "/tmp" }
+    expect:
+      error: false
+
+  - name: list_directory denies access outside the allowed root
+    tool: list_directory
+    input: { path: "/etc" }
+    expect:
+      error: true

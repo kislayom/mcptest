@@ -1,6 +1,6 @@
 {
   "name": "mcpcert",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "The test suite + trust layer for MCP servers. Start with: mcpcert doctor <server>.",
   "author": "Kislay Kumar <kislay.osho@gmail.com>",
   "homepage": "https://github.com/kislayom/mcpcert#readme",
@@ -41,7 +41,8 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "commander": "^12.1.0",
-    "picocolors": "^1.1.1"
+    "picocolors": "^1.1.1",
+    "yaml": "^2.6.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

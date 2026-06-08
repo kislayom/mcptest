@@ -1,8 +1,12 @@
 #!/usr/bin/env node
+import { readFileSync } from "node:fs";
 import { Command } from "commander";
 import pc from "picocolors";
 import { runDoctor } from "./doctor.js";
-import { printReport, printScore } from "./report.js";
+import { junitXml } from "./junit.js";
+import { printReport, printRun, printScore } from "./report.js";
+import { loadTestFiles, runTestFile, type TestResult } from "./run.js";
+import { leaderboardTable, scanTargets } from "./scan.js";
 import { badgeMarkdown, certify } from "./score.js";
 
 const program = new Command();
@@ -10,7 +14,7 @@ const program = new Command();
 program
   .name("mcpcert")
   .description("The test suite + trust layer for MCP servers")
-  .version("0.1.0");
+  .version("0.2.0");
 
 program
   .command("doctor")
@@ -19,13 +23,9 @@ program
   .option("--json", "output machine-readable JSON instead of the report")
   .action(async (target: string, opts: { json?: boolean }) => {
     const result = await runDoctor(target);
-    if (opts.json) {
-      process.stdout.write(JSON.stringify(result, null, 2) + "\n");
-    } else {
-      printReport(result);
-    }
-    const failed = result.checks.some((c) => c.severity === "fail");
-    process.exit(failed ? 1 : 0);
+    if (opts.json) process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+    else printReport(result);
+    process.exit(result.checks.some((c) => c.severity === "fail") ? 1 : 0);
   });
 
 program
@@ -36,17 +36,61 @@ program
   .option("--badge", "output a Markdown badge for your README")
   .action(async (target: string, opts: { json?: boolean; badge?: boolean }) => {
     const cert = certify(await runDoctor(target));
-    if (opts.badge) {
-      process.stdout.write(badgeMarkdown(cert) + "\n");
-    } else if (opts.json) {
-      process.stdout.write(JSON.stringify(cert, null, 2) + "\n");
-    } else {
-      printScore(cert);
-    }
+    if (opts.badge) process.stdout.write(badgeMarkdown(cert) + "\n");
+    else if (opts.json) process.stdout.write(JSON.stringify(cert, null, 2) + "\n");
+    else printScore(cert);
     process.exit(cert.certified ? 0 : 1);
+  });
+
+program
+  .command("run")
+  .argument("[target]", "server URL/command; overrides the 'server:' field in the test files")
+  .description("Run *.mcpcert.yaml test files against an MCP server")
+  .option("--file <path>", "a specific test file (default: *.mcpcert.yaml in the current directory)")
+  .option("--reporter <kind>", "pretty (default) or junit")
+  .action(async (target: string | undefined, opts: { file?: string; reporter?: string }) => {
+    const files = loadTestFiles(opts.file);
+    if (files.length === 0) {
+      process.stderr.write("mcpcert run: no *.mcpcert.yaml test files found\n");
+      process.exit(2);
+    }
+    const all: TestResult[] = [];
+    for (const { file, spec } of files) {
+      const results = await runTestFile(spec, target);
+      all.push(...results);
+      if (opts.reporter !== "junit") printRun(file, results);
+    }
+    if (opts.reporter === "junit") process.stdout.write(junitXml("mcpcert", all));
+    process.exit(all.some((r) => !r.passed) ? 1 : 0);
+  });
+
+program
+  .command("scan")
+  .argument("[targets...]", "MCP server URLs/commands to score")
+  .description("Score multiple MCP servers and print a leaderboard")
+  .option("--file <path>", "read targets from a file (one per line; # comments allowed)")
+  .option("--json", "output machine-readable JSON")
+  .action(async (targets: string[], opts: { file?: string; json?: boolean }) => {
+    const list = [...(targets ?? [])];
+    if (opts.file) list.push(...readLines(opts.file));
+    if (list.length === 0) {
+      process.stderr.write("mcpcert scan: no targets given\n");
+      process.exit(2);
+    }
+    const ranked = await scanTargets(list);
+    if (opts.json) process.stdout.write(JSON.stringify(ranked, null, 2) + "\n");
+    else process.stdout.write("\n" + leaderboardTable(ranked) + "\n\n");
+    process.exit(0);
   });
 
 program.parseAsync(process.argv).catch((err: unknown) => {
   process.stderr.write(pc.red("mcpcert: ") + (err instanceof Error ? err.message : String(err)) + "\n");
   process.exit(2);
 });
+
+function readLines(path: string): string[] {
+  return readFileSync(path, "utf8")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0 && !l.startsWith("#"));
+}
