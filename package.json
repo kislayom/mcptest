@@ -2,6 +2,15 @@
   "name": "mcptest",
   "version": "0.0.1",
   "description": "The test suite + trust layer for MCP servers. Start with: mcptest doctor <server>.",
+  "author": "Kislay Kumar <kislay.osho@gmail.com>",
+  "homepage": "https://github.com/kislayom/mcptest#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kislayom/mcptest.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kislayom/mcptest/issues"
+  },
   "type": "module",
   "bin": {
     "mcptest": "dist/cli.js"
