@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.mcptest/cache/
+*.log
+.DS_Store
+.env

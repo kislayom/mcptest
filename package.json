@@ -1,0 +1,33 @@
+{
+  "name": "mcptest",
+  "version": "0.0.1",
+  "description": "The test suite + trust layer for MCP servers. Start with: mcptest doctor <server>.",
+  "type": "module",
+  "bin": { "mcptest": "dist/cli.js" },
+  "files": ["dist"],
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli.ts",
+    "start": "node dist/cli.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "testing",
+    "conformance",
+    "ai-agents",
+    "cli"
+  ],
+  "license": "Apache-2.0",
+  "dependencies": {
+    "commander": "^12.1.0",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
