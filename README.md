@@ -55,8 +55,12 @@ tests:
     tool: list_directory
     input: { path: "/tmp" }
     expect:
-      error: false
-      contains: "tmp"
+      error: false          # the call must not error
+      contains: "tmp"       # substring in the text output
+      matches: "(?i)tmp"    # ...or a regex
+      # fields: { ok: true }       # assert structured-output fields by dot-path
+      # max_latency_ms: 2000       # performance budget
+      # no_secret_leak: true       # output must not leak secret-shaped strings
 ```
 
 ```bash

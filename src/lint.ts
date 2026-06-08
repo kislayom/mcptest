@@ -87,6 +87,14 @@ export function schemaIssue(schema: unknown, path = "inputSchema"): string | nul
   return null;
 }
 
+/** Returns the kind of secret-shaped string found in `text`, or null. */
+export function secretIn(text: string): string | null {
+  for (const p of SECRET_PATTERNS) {
+    if (p.re.test(text)) return p.what;
+  }
+  return null;
+}
+
 export function lintTools(tools: Tool[]): LintFinding[] {
   const findings: LintFinding[] = [];
 
