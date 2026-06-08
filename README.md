@@ -24,7 +24,12 @@ npx mcptest doctor https://your-server.example.com
 ## Usage
 
 ```bash
+# remote (Streamable HTTP) server
 mcptest doctor https://your-mcp-server.example.com
+
+# local stdio server — quote the whole command
+mcptest doctor "npx -y @modelcontextprotocol/server-filesystem /tmp"
+
 mcptest doctor https://your-mcp-server.example.com --json   # machine-readable
 ```
 
@@ -32,9 +37,10 @@ mcptest doctor https://your-mcp-server.example.com --json   # machine-readable
 
 ## Roadmap
 
-- [x] `doctor` skeleton — HTTP reachability, discovery manifest, CORS
-- [ ] MCP protocol checks via `@modelcontextprotocol/sdk` — handshake, `tools/list`, per-tool JSON-Schema validation
-- [ ] Deterministic security lint — injection-shaped tool descriptions, secret patterns
+- [x] `doctor` — HTTP reachability, discovery manifest, CORS
+- [x] MCP protocol checks via `@modelcontextprotocol/sdk` — stdio + Streamable HTTP, handshake, `tools/list`
+- [x] Deterministic lint — input-schema validity, missing descriptions, injection-shaped text, leaked secrets
+- [ ] Deep JSON-Schema validation (ajv) + SSE transport
 - [ ] `mcptest run` — code-first test DSL (deterministic core + recorded, advisory semantic checks)
 - [ ] JUnit / SARIF reporters + a GitHub Action
 - [ ] Watchtower — hosted, deterministic drift monitoring of the upstream servers you depend on
