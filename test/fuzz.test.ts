@@ -21,6 +21,9 @@ describe("generateProbes", () => {
     expect(cats).toContain("injection");
     expect(cats).toContain("path-traversal");
     expect(cats).toContain("oversized");
+    expect(cats).toContain("command-injection");
+    expect(cats).toContain("ssrf");
+    expect(cats).toContain("sql-injection");
   });
 
   it("puts the injection payload in a string field", () => {

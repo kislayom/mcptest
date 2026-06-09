@@ -4,7 +4,15 @@ import { secretIn, type Tool } from "./lint.js";
 import { assessRisks } from "./security.js";
 import { openClient } from "./transport.js";
 
-export type Vuln = "crash" | "leak" | "injection-echo" | "weak-validation" | "slow";
+export type Vuln =
+  | "crash"
+  | "leak"
+  | "injection-echo"
+  | "weak-validation"
+  | "slow"
+  | "path-traversal"
+  | "command-exec"
+  | "ssrf";
 
 export interface ProbeFinding {
   tool: string;
@@ -31,30 +39,47 @@ export interface ProbeReport {
 
 const SLOW_MS = 10_000;
 
+// Confirmed-exploit signatures — these appear in output ONLY if the attack worked.
+const PASSWD = /root:.*:0:0:/; // contents of /etc/passwd
+const ID_OUTPUT = /uid=\d+\(/; // output of the `id` command
+const METADATA = /AccessKeyId|SecretAccessKey|ami-id|instance-id|iam\/security-credentials/i;
+
 /** Pure: classify one probe outcome into vulnerability findings. */
 export function analyzeProbe(tool: string, probe: Probe, o: ProbeOutcome): ProbeFinding[] {
+  const f = (vuln: Vuln, detail: string): ProbeFinding => ({ tool, category: probe.category, vuln, detail });
+
   if (o.crashed) {
-    return [{ tool, category: probe.category, vuln: "crash", detail: "server crashed / dropped the connection on this input" }];
+    return [f("crash", "server crashed / dropped the connection on this input")];
+  }
+
+  // Confirmed exploits: a SUCCESSFUL response whose body proves the attack worked.
+  if (!o.errored) {
+    if (probe.category === "path-traversal" && PASSWD.test(o.resultText)) {
+      return [f("path-traversal", "read /etc/passwd via path traversal (confirmed)")];
+    }
+    if (probe.category === "command-injection" && ID_OUTPUT.test(o.resultText)) {
+      return [f("command-exec", "shell command executed — `id` output in the response (confirmed)")];
+    }
+    if (probe.category === "ssrf" && METADATA.test(o.resultText)) {
+      return [f("ssrf", "fetched cloud-metadata credentials via SSRF (confirmed)")];
+    }
   }
 
   const findings: ProbeFinding[] = [];
 
   if (probe.expect === "graceful-error" && !o.errored) {
-    findings.push({ tool, category: probe.category, vuln: "weak-validation", detail: `accepted ${probe.note} without an error` });
+    findings.push(f("weak-validation", `accepted ${probe.note} without an error`));
   }
 
   const leak = secretIn(o.resultText);
-  if (leak) findings.push({ tool, category: probe.category, vuln: "leak", detail: `output leaked a ${leak}` });
+  if (leak) findings.push(f("leak", `output leaked a ${leak}`));
 
-  // Only a *successful* response that reflects the payload is a real risk (an
-  // indirect-injection vector for a downstream agent). The payload appearing in
-  // an error message — e.g. "no such file '<payload>'" — is benign reflection.
   if (probe.category === "injection" && !o.errored && /ignore all previous instructions|system prompt|reveal your/i.test(o.resultText)) {
-    findings.push({ tool, category: probe.category, vuln: "injection-echo", detail: "a successful response reflected the injected instruction (indirect-injection vector)" });
+    findings.push(f("injection-echo", "a successful response reflected the injected instruction (indirect-injection vector)"));
   }
 
   if (o.latencyMs > SLOW_MS) {
-    findings.push({ tool, category: probe.category, vuln: "slow", detail: `took ${o.latencyMs}ms (denial-of-service surface)` });
+    findings.push(f("slow", `took ${o.latencyMs}ms (denial-of-service surface)`));
   }
 
   return findings;

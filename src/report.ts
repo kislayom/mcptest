@@ -93,7 +93,7 @@ export function printProbe(report: ProbeReport): void {
   }
 
   for (const f of report.findings) {
-    const hard = f.vuln === "crash" || f.vuln === "leak" || f.vuln === "injection-echo";
+    const hard = !["weak-validation", "slow"].includes(f.vuln);
     const tag = hard ? pc.red(`✘ ${f.vuln}`) : pc.yellow(`▲ ${f.vuln}`);
     out.push(`  ${tag}  ${f.tool} [${f.category}]  ${pc.dim(f.detail)}`);
   }

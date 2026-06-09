@@ -41,4 +41,21 @@ describe("analyzeProbe", () => {
     const f = analyzeProbe("t", probe("oversized", "graceful-error"), outcome({ errored: true, latencyMs: 99999 }));
     expect(f.some((x) => x.vuln === "slow")).toBe(true);
   });
+
+  it("confirms path traversal ONLY when /etc/passwd content comes back", () => {
+    const hit = analyzeProbe("t", probe("path-traversal", "graceful-error"), outcome({ errored: false, resultText: "root:x:0:0:root:/root:/bin/bash" }));
+    expect(hit.some((x) => x.vuln === "path-traversal")).toBe(true);
+    const miss = analyzeProbe("t", probe("path-traversal", "graceful-error"), outcome({ errored: true, resultText: "Access denied - outside allowed dirs" }));
+    expect(miss.some((x) => x.vuln === "path-traversal")).toBe(false);
+  });
+
+  it("confirms command execution from `id` output", () => {
+    const f = analyzeProbe("t", probe("command-injection", "graceful-error"), outcome({ errored: false, resultText: "uid=0(root) gid=0(root) groups=0(root)" }));
+    expect(f.some((x) => x.vuln === "command-exec")).toBe(true);
+  });
+
+  it("confirms SSRF from cloud-metadata in the response", () => {
+    const f = analyzeProbe("t", probe("ssrf", "graceful-error"), outcome({ errored: false, resultText: '{"AccessKeyId":"ASIAEXAMPLE","SecretAccessKey":"x"}' }));
+    expect(f.some((x) => x.vuln === "ssrf")).toBe(true);
+  });
 });
