@@ -5,7 +5,7 @@
 **The test suite + trust layer for MCP servers.**
 Point it at any [Model Context Protocol](https://modelcontextprotocol.io) server and find out what's broken — in seconds, in your terminal, in CI.
 
-> **Status: early.** `mcpcert doctor` — the zero-config health + conformance scan — is taking shape first. The code-first test DSL and the hosted drift-monitor follow. See the [roadmap](#roadmap).
+> **Status: usable today.** Eight deterministic commands — `doctor`, `score`, `probe`, `run`, `scan`, `snapshot`/`diff`, `report` — plus a library API. The hosted drift-monitor (Watchtower) is next. See the [roadmap](#roadmap).
 
 ## Why
 
@@ -35,14 +35,25 @@ mcpcert doctor https://your-mcp-server.example.com --json   # machine-readable
 
 `doctor` is **100% deterministic** — no LLM is ever in this path, so it doesn't flake in CI. It exits non-zero when any check fails.
 
-## Score & badge
+## Score — a security grade, not a checkbox count
 
 ```bash
-mcpcert score https://your-mcp-server.example.com          # MCP Cert Score (0–100) + grade
-mcpcert score https://your-mcp-server.example.com --badge  # Markdown badge for your README
+mcpcert score https://your-mcp-server.example.com           # graded breakdown + letter
+mcpcert score https://your-mcp-server.example.com --probe   # actively attack it, then grade
+mcpcert score https://your-mcp-server.example.com --badge   # Markdown badge for your README
 ```
 
-`score` exits non-zero unless the server is **Certified** (≥80/100 with no failing checks) — so you can gate your own MCP server in CI.
+The MCP Cert Score is **not** a sum of checkboxes. It's a penalty model over six dimensions of the MCP threat model — protocol conformance, interface quality, injection resistance, input robustness, confidentiality, and exploitation — where a finding's weight scales with the **blast radius** of the tool it hits (a weak check on `delete_file` costs more than on `get_weather`), and a single **confirmed** exploit, secret leak, or poisoned description **caps the whole grade**, the way a real review lets one critical dominate.
+
+It's also honest about what it didn't test: robustness and exploitation need an active probe, so without `--probe` they're marked *not assessed* rather than silently scored. A passive run is a conformance grade; `--probe` is a security grade.
+
+Every weight, cap, and threshold is written down and versioned in **[docs/SCORING.md](./docs/SCORING.md)**, so a score is reproducible and defensible — not a number we made up.
+
+`score` exits non-zero unless the server is **Certified** (≥80/100, no caps, no critical/high findings) — so you can gate your own server in CI. Watch the caps fire against the bundled, deliberately-vulnerable demo:
+
+```bash
+mcpcert score --probe "node examples/vulnerable-server.mjs"   # → F, capped at 40
+```
 
 ## Test DSL (`run`)
 
@@ -127,6 +138,7 @@ Works with `score`, `doctor`, `report`, `run`, and `diff`.
 - [x] `mcpcert report` — Markdown certification report + capability-risk audit
 - [x] richer `run` assertions — structured fields, latency budgets, secret-leak
 - [x] `mcpcert probe` — active adversarial fuzzing + injection/leak/crash analysis
+- [x] threat-model-grounded **security grade** — six dimensions, blast-radius weighting, confirmed-exploit caps, `--probe`-backed; versioned rubric in [SCORING.md](./docs/SCORING.md)
 - [x] library API (`import { ... } from "mcpcert"`) + Watchtower (self-hostable drift monitor)
 - [ ] Recorded, advisory semantic (LLM) assertions for `run`
 - [ ] JUnit / SARIF reporters + a GitHub Action

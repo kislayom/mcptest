@@ -16,9 +16,10 @@ export async function runDoctor(target: string): Promise<DoctorResult> {
   if (classifyTarget(target) === "http") {
     checks.push(...(await httpChecks(target)));
   }
-  checks.push(...(await runProtocolChecks(target)));
+  const proto = await runProtocolChecks(target);
+  checks.push(...proto.checks);
 
-  return finalize(target, startedAt, checks);
+  return finalize(target, startedAt, checks, proto.tools);
 }
 
 /** Deterministic HTTP-surface checks for URL targets (reachability, CORS, discovery manifest). */

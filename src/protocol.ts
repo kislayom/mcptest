@@ -10,8 +10,15 @@ export { classifyTarget } from "./transport.js";
  * (handshake, tools/list, per-tool schema + description + security lint),
  * and always tear the client down afterwards.
  */
-export async function runProtocolChecks(target: string): Promise<CheckResult[]> {
+export interface ProtocolResult {
+  checks: CheckResult[];
+  /** Tools advertised by the server (empty if the handshake or tools/list failed). */
+  tools: Tool[];
+}
+
+export async function runProtocolChecks(target: string): Promise<ProtocolResult> {
   const checks: CheckResult[] = [];
+  let tools: Tool[] = [];
 
   let opened: Awaited<ReturnType<typeof openClient>>;
   try {
@@ -19,12 +26,12 @@ export async function runProtocolChecks(target: string): Promise<CheckResult[]> 
     checks.push(pass("mcp_handshake", "Completes the MCP handshake", `connected over ${opened.transport}`, 6));
   } catch (e) {
     checks.push(fail("mcp_handshake", "Completes the MCP handshake", `connect failed: ${msg(e)}`, 6));
-    return checks;
+    return { checks, tools };
   }
 
   try {
     const res = await opened.client.listTools();
-    const tools: Tool[] = res.tools.map((t) => ({ name: t.name, description: t.description, inputSchema: t.inputSchema }));
+    tools = res.tools.map((t) => ({ name: t.name, description: t.description, inputSchema: t.inputSchema }));
     checks.push(pass("tools_list", "Responds to tools/list", `${tools.length} tool(s) advertised`, 4));
     checks.push(...toolChecks(tools));
   } catch (e) {
@@ -33,7 +40,7 @@ export async function runProtocolChecks(target: string): Promise<CheckResult[]> 
     await opened.close();
   }
 
-  return checks;
+  return { checks, tools };
 }
 
 function toolChecks(tools: Tool[]): CheckResult[] {

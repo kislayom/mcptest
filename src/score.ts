@@ -1,37 +1,44 @@
+import { CERT_THRESHOLD, grade, gradeLetter, type Letter, type SecurityGrade } from "./grade.js";
+import type { ProbeReport } from "./probe.js";
 import type { DoctorResult } from "./types.js";
 
 export interface CertResult {
   target: string;
-  /** 0–100 */
+  /** 0–100, from the security-grade rubric (see grade.ts / docs/SCORING.md) */
   score: number;
-  grade: "A" | "B" | "C" | "D" | "F";
-  /** score >= 80 AND zero failing checks */
+  grade: Letter;
+  /** score >= threshold, no hard caps, and no critical/high findings */
   certified: boolean;
-  /** number of fail-severity checks */
+  /** number of fail-severity doctor checks (kept for back-compat reporting) */
   failed: number;
+  /** the full, explainable grade breakdown */
+  breakdown?: SecurityGrade;
 }
 
-/** A server must clear this score AND have no hard failures to be "Certified". */
-export const CERT_THRESHOLD = 80;
+export { CERT_THRESHOLD };
 
-export function certify(result: DoctorResult): CertResult {
-  const score = result.maxScore > 0 ? Math.round((result.score / result.maxScore) * 100) : 0;
+/**
+ * Turn a doctor result (optionally enriched with an active probe report) into a
+ * certification summary. The score is the threat-model-grounded grade — not a
+ * sum of check points. Pass the probe report to fold active-attack evidence
+ * (robustness + exploitation) into the grade.
+ */
+export function certify(result: DoctorResult, probe?: ProbeReport): CertResult {
+  const breakdown = grade({ doctor: result, probe });
   const failed = result.checks.filter((c) => c.severity === "fail").length;
   return {
     target: result.target,
-    score,
-    grade: gradeFor(score),
-    certified: score >= CERT_THRESHOLD && failed === 0,
+    score: breakdown.score,
+    grade: breakdown.grade,
+    certified: breakdown.certified,
     failed,
+    breakdown,
   };
 }
 
-export function gradeFor(score: number): CertResult["grade"] {
-  if (score >= 90) return "A";
-  if (score >= 80) return "B";
-  if (score >= 70) return "C";
-  if (score >= 60) return "D";
-  return "F";
+/** Back-compat: map a 0–100 score to a letter grade. */
+export function gradeFor(score: number): Letter {
+  return gradeLetter(score);
 }
 
 function badgeColor(score: number): string {

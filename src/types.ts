@@ -1,3 +1,5 @@
+import type { Tool } from "./lint.js";
+
 export type Severity = "pass" | "warn" | "fail" | "info";
 
 export interface CheckResult {
@@ -20,4 +22,6 @@ export interface DoctorResult {
   checks: CheckResult[];
   score: number;
   maxScore: number;
+  /** Tools advertised by the server, captured during the protocol checks. */
+  tools?: Tool[];
 }

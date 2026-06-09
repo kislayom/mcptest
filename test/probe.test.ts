@@ -58,4 +58,18 @@ describe("analyzeProbe", () => {
     const f = analyzeProbe("t", probe("ssrf", "graceful-error"), outcome({ errored: false, resultText: '{"AccessKeyId":"ASIAEXAMPLE","SecretAccessKey":"x"}' }));
     expect(f.some((x) => x.vuln === "ssrf")).toBe(true);
   });
+
+  it("does NOT confirm SSRF when the tool merely echoes the attack URL back (echo guard)", () => {
+    const url = "http://169.254.169.254/latest/meta-data/iam/security-credentials/";
+    const echoProbe: Probe = { category: "ssrf", expect: "graceful-error", args: { path: url }, note: "ssrf url in path" };
+    const f = analyzeProbe("echo_tool", echoProbe, outcome({ errored: false, resultText: `You said: ${url}` }));
+    expect(f.some((x) => x.vuln === "ssrf")).toBe(false);
+  });
+
+  it("still confirms a real exploit even if the response also echoes the payload", () => {
+    // genuine command execution: the `id` output is server-produced, the echoed payload is stripped
+    const p: Probe = { category: "command-injection", expect: "graceful-error", args: { cmd: "x; id; cat /etc/passwd #" }, note: "cmd inj" };
+    const f = analyzeProbe("shell", p, outcome({ errored: false, resultText: "ran: x; id; cat /etc/passwd #\nuid=0(root) gid=0(root)" }));
+    expect(f.some((x) => x.vuln === "command-exec")).toBe(true);
+  });
 });

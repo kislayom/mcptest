@@ -3,6 +3,8 @@
 export { httpChecks, runDoctor } from "./doctor.js";
 export { diffSnapshots, fingerprintTools, snapshot } from "./drift.js";
 export type { ChangeKind, DriftChange, DriftReport, Snapshot, ToolFingerprint } from "./drift.js";
+export { grade, gradeLetter, RUBRIC_VERSION } from "./grade.js";
+export type { CapHit, Deduction, Dimension, DimensionScore, GradeInput, GradeSeverity, Letter, SecurityGrade } from "./grade.js";
 export { junitXml } from "./junit.js";
 export { lintTools, schemaIssue, secretIn } from "./lint.js";
 export type { FindingKind, LintFinding, Tool } from "./lint.js";
@@ -15,7 +17,7 @@ export { badgeMarkdown, badgeUrl, CERT_THRESHOLD, certify, gradeFor } from "./sc
 export type { CertResult } from "./score.js";
 export { generateProbes, minimalValid } from "./fuzz.js";
 export type { Probe, ProbeCategory } from "./fuzz.js";
-export { analyzeProbe, probeServer } from "./probe.js";
+export { analyzeProbe, probeServer, stripEcho } from "./probe.js";
 export type { ProbeFinding, ProbeOutcome, ProbeReport, Vuln } from "./probe.js";
 export { assessRisks } from "./security.js";
 export type { RiskFinding, RiskKind } from "./security.js";

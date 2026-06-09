@@ -19,7 +19,7 @@ const program = new Command();
 program
   .name("mcpcert")
   .description("The test suite + trust layer for MCP servers")
-  .version("0.8.0");
+  .version("0.9.0");
 
 program
   .command("doctor")
@@ -36,11 +36,14 @@ program
 program
   .command("score")
   .argument("<target>", "MCP server URL (http/https) or a stdio command (quote it)")
-  .description("Print the MCP Cert Score (0–100) for a server")
+  .description("Print the MCP Cert Score (0–100) for a server, broken down by threat dimension")
   .option("--json", "output machine-readable JSON")
   .option("--badge", "output a Markdown badge for your README")
-  .action(async (target: string, opts: { json?: boolean; badge?: boolean }) => {
-    const cert = certify(await runDoctor(target));
+  .option("--probe", "actively probe the server and fold robustness + exploitation into the grade (calls tools)")
+  .action(async (target: string, opts: { json?: boolean; badge?: boolean; probe?: boolean }) => {
+    const doctor = await runDoctor(target);
+    const probe = opts.probe ? await probeServer(target) : undefined;
+    const cert = certify(doctor, probe);
     if (opts.badge) process.stdout.write(badgeMarkdown(cert) + "\n");
     else if (opts.json) process.stdout.write(JSON.stringify(cert, null, 2) + "\n");
     else printScore(cert);
@@ -63,12 +66,14 @@ program
 program
   .command("report")
   .argument("<target>", "MCP server URL (http/https) or a stdio command (quote it)")
-  .description("Generate a full Markdown certification report (checks, tools, capability risk)")
+  .description("Generate a full Markdown certification report (grade, checks, tools, capability risk)")
   .option("-o, --out <file>", "write the report to a file (default: stdout)")
-  .action(async (target: string, opts: { out?: string }) => {
+  .option("--probe", "actively probe the server and include robustness + exploitation in the grade (calls tools)")
+  .action(async (target: string, opts: { out?: string; probe?: boolean }) => {
     const result = await runDoctor(target);
-    const cert = certify(result);
-    const tools = await listToolsOf(target);
+    const probe = opts.probe ? await probeServer(target) : undefined;
+    const cert = certify(result, probe);
+    const tools = result.tools ?? (await listToolsOf(target));
     const md = certificationMarkdown({ target, result, cert, tools, risks: assessRisks(tools) });
     if (opts.out) {
       writeFileSync(opts.out, md);

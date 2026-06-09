@@ -40,9 +40,12 @@ export interface ProbeReport {
 const SLOW_MS = 10_000;
 
 // Confirmed-exploit signatures — these appear in output ONLY if the attack worked.
+// Each must match content the SERVER produced, never a fragment of the payload we
+// sent (see stripEcho): e.g. the SSRF signature is the metadata RESPONSE body
+// (AccessKeyId/SecretAccessKey), not the request URL, which lives in our payload.
 const PASSWD = /root:.*:0:0:/; // contents of /etc/passwd
 const ID_OUTPUT = /uid=\d+\(/; // output of the `id` command
-const METADATA = /AccessKeyId|SecretAccessKey|ami-id|instance-id|iam\/security-credentials/i;
+const METADATA = /AccessKeyId|SecretAccessKey/i; // body of the IAM credentials response
 
 /** Pure: classify one probe outcome into vulnerability findings. */
 export function analyzeProbe(tool: string, probe: Probe, o: ProbeOutcome): ProbeFinding[] {
@@ -53,14 +56,18 @@ export function analyzeProbe(tool: string, probe: Probe, o: ProbeOutcome): Probe
   }
 
   // Confirmed exploits: a SUCCESSFUL response whose body proves the attack worked.
+  // Guard against ECHO: a tool that merely reflects our payload back must NOT be
+  // mistaken for one that executed it. Strip verbatim copies of the sent input
+  // first, so the proof signature has to appear in server-produced content.
   if (!o.errored) {
-    if (probe.category === "path-traversal" && PASSWD.test(o.resultText)) {
+    const echoFree = stripEcho(o.resultText, probe.args);
+    if (probe.category === "path-traversal" && PASSWD.test(echoFree)) {
       return [f("path-traversal", "read /etc/passwd via path traversal (confirmed)")];
     }
-    if (probe.category === "command-injection" && ID_OUTPUT.test(o.resultText)) {
+    if (probe.category === "command-injection" && ID_OUTPUT.test(echoFree)) {
       return [f("command-exec", "shell command executed — `id` output in the response (confirmed)")];
     }
-    if (probe.category === "ssrf" && METADATA.test(o.resultText)) {
+    if (probe.category === "ssrf" && METADATA.test(echoFree)) {
       return [f("ssrf", "fetched cloud-metadata credentials via SSRF (confirmed)")];
     }
   }
@@ -132,6 +139,19 @@ async function callProbe(client: Client, name: string, probe: Probe): Promise<Pr
     const crashed = /closed|EPIPE|ECONNRESET|terminated|exited|disconnect|socket hang up/i.test(message);
     return { errored: true, resultText: message, latencyMs: Date.now() - t0, crashed };
   }
+}
+
+/**
+ * Remove verbatim copies of the sent payload from `text`, so reflected input can't
+ * be mistaken for server-produced proof of an exploit. Only strips reasonably long
+ * payloads (>= 8 chars) to avoid blanking out trivial values like "x".
+ */
+export function stripEcho(text: string, args: Record<string, unknown>): string {
+  let out = text;
+  for (const v of Object.values(args)) {
+    if (typeof v === "string" && v.length >= 8) out = out.split(v).join(" ");
+  }
+  return out;
 }
 
 function text(content: unknown): string {

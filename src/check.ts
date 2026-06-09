@@ -1,3 +1,4 @@
+import type { Tool } from "./lint.js";
 import type { CheckResult, DoctorResult } from "./types.js";
 
 export function pass(id: string, title: string, detail: string, pts: number): CheckResult {
@@ -12,8 +13,8 @@ export function fail(id: string, title: string, detail: string, max: number): Ch
   return { id, title, severity: "fail", detail, points: 0, maxPoints: max };
 }
 
-export function finalize(target: string, startedAt: string, checks: CheckResult[]): DoctorResult {
+export function finalize(target: string, startedAt: string, checks: CheckResult[], tools?: Tool[]): DoctorResult {
   const score = checks.reduce((s, c) => s + c.points, 0);
   const maxScore = checks.reduce((s, c) => s + c.maxPoints, 0);
-  return { target, startedAt, checks, score, maxScore };
+  return { target, startedAt, checks, score, maxScore, tools };
 }

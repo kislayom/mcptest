@@ -32,14 +32,43 @@ export function printScore(cert: CertResult): void {
   const scoreStr = `${cert.score}/100`;
   const colored = cert.score >= 80 ? pc.green(scoreStr) : cert.score >= 60 ? pc.yellow(scoreStr) : pc.red(scoreStr);
   const stamp = cert.certified ? pc.green("✓ Certified") : pc.red("✗ Not certified");
-
   const out: string[] = ["", pc.bold(`MCP Cert Score  ${colored}  (${cert.grade})   ${stamp}`), pc.dim(`  ${cert.target}`)];
-  if (!cert.certified) {
+
+  const g = cert.breakdown;
+  if (g) {
+    out.push(pc.dim(`  rubric ${g.rubric} · probed: ${g.assessed.probe ? "yes" : "no"}`), "");
+    for (const d of g.dimensions) {
+      const name = d.title.padEnd(22);
+      if (!d.assessed) {
+        out.push(pc.dim(`  ${name}    —   not assessed`));
+        continue;
+      }
+      const s = String(d.score).padStart(3);
+      const sc = d.score >= 80 ? pc.green(s) : d.score >= 60 ? pc.yellow(s) : pc.red(s);
+      const issues = d.deductions.length ? pc.dim(`  ${d.deductions.length} issue(s)`) : "";
+      out.push(`  ${name}  ${sc}  ${bar(d.score)}${issues}`);
+    }
+    for (const cap of g.caps) out.push(pc.red(`  ⚠ capped at ${cap.ceiling} — ${cap.reason}`));
+    const hard = g.dimensions.flatMap((d) => d.deductions).filter((x) => x.severity === "critical" || x.severity === "high");
+    if (hard.length > 0) {
+      out.push("", pc.dim("  top findings:"));
+      for (const x of hard.slice(0, 8)) out.push(pc.dim(`   • [${x.severity}] ${x.tool ? `${x.tool} — ` : ""}${x.detail}`));
+    }
+    if (!g.assessed.probe) {
+      const t = cert.target.includes(" ") ? `"${cert.target}"` : cert.target;
+      out.push("", pc.dim(`  robustness + exploitation not assessed — run: mcpcert probe ${t}`));
+    }
+  } else if (!cert.certified) {
     const t = cert.target.includes(" ") ? `"${cert.target}"` : cert.target;
     out.push(pc.dim(`  run 'mcpcert doctor ${t}' for the full breakdown`));
   }
   out.push("");
   process.stdout.write(out.join("\n") + "\n");
+}
+
+function bar(score: number): string {
+  const n = Math.max(0, Math.min(12, Math.round((score / 100) * 12)));
+  return pc.dim("█".repeat(n) + "░".repeat(12 - n));
 }
 
 export function printRun(file: string, results: TestResult[]): void {
