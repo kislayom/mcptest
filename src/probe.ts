@@ -46,8 +46,11 @@ export function analyzeProbe(tool: string, probe: Probe, o: ProbeOutcome): Probe
   const leak = secretIn(o.resultText);
   if (leak) findings.push({ tool, category: probe.category, vuln: "leak", detail: `output leaked a ${leak}` });
 
-  if (probe.category === "injection" && /ignore all previous instructions|system prompt|reveal/i.test(o.resultText)) {
-    findings.push({ tool, category: probe.category, vuln: "injection-echo", detail: "output echoed the injected instruction (payload propagated)" });
+  // Only a *successful* response that reflects the payload is a real risk (an
+  // indirect-injection vector for a downstream agent). The payload appearing in
+  // an error message — e.g. "no such file '<payload>'" — is benign reflection.
+  if (probe.category === "injection" && !o.errored && /ignore all previous instructions|system prompt|reveal your/i.test(o.resultText)) {
+    findings.push({ tool, category: probe.category, vuln: "injection-echo", detail: "a successful response reflected the injected instruction (indirect-injection vector)" });
   }
 
   if (o.latencyMs > SLOW_MS) {
