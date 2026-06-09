@@ -13,6 +13,10 @@ export type { CallOutcome, Expectation, TestCase, TestFile, TestResult } from ".
 export { leaderboardTable, rankCerts, scanTargets } from "./scan.js";
 export { badgeMarkdown, badgeUrl, CERT_THRESHOLD, certify, gradeFor } from "./score.js";
 export type { CertResult } from "./score.js";
+export { generateProbes, minimalValid } from "./fuzz.js";
+export type { Probe, ProbeCategory } from "./fuzz.js";
+export { analyzeProbe, probeServer } from "./probe.js";
+export type { ProbeFinding, ProbeOutcome, ProbeReport, Vuln } from "./probe.js";
 export { assessRisks } from "./security.js";
 export type { RiskFinding, RiskKind } from "./security.js";
 export { classifyTarget, listToolsOf, openClient } from "./transport.js";

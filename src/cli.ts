@@ -6,7 +6,8 @@ import { diffSnapshots, snapshot, type Snapshot } from "./drift.js";
 import { runDoctor } from "./doctor.js";
 import { junitXml } from "./junit.js";
 import { certificationMarkdown } from "./markdown.js";
-import { printDrift, printReport, printRun, printScore } from "./report.js";
+import { probeServer } from "./probe.js";
+import { printDrift, printProbe, printReport, printRun, printScore } from "./report.js";
 import { loadTestFiles, runTestFile, type TestResult } from "./run.js";
 import { leaderboardTable, scanTargets } from "./scan.js";
 import { badgeMarkdown, certify } from "./score.js";
@@ -18,7 +19,7 @@ const program = new Command();
 program
   .name("mcpcert")
   .description("The test suite + trust layer for MCP servers")
-  .version("0.6.0");
+  .version("0.7.0");
 
 program
   .command("doctor")
@@ -44,6 +45,19 @@ program
     else if (opts.json) process.stdout.write(JSON.stringify(cert, null, 2) + "\n");
     else printScore(cert);
     process.exit(cert.certified ? 0 : 1);
+  });
+
+program
+  .command("probe")
+  .argument("<target>", "MCP server URL (http/https) or a stdio command (quote it)")
+  .description("Actively probe a server with adversarial inputs (fuzzing + injection)")
+  .option("--include-mutating", "also probe write/delete/exec tools — DANGEROUS, it really calls them")
+  .option("--json", "output machine-readable JSON")
+  .action(async (target: string, opts: { includeMutating?: boolean; json?: boolean }) => {
+    const report = await probeServer(target, { includeMutating: opts.includeMutating });
+    if (opts.json) process.stdout.write(JSON.stringify(report, null, 2) + "\n");
+    else printProbe(report);
+    process.exit(report.findings.length > 0 ? 1 : 0);
   });
 
 program

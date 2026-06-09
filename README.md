@@ -90,6 +90,17 @@ mcpcert diff     "npx -y @modelcontextprotocol/server-filesystem /tmp" --baselin
 
 `diff` exits non-zero on any change and **escalates a description that turns injection-shaped to a suspected rug-pull.** Deterministic, no LLM. *(Continuous, hosted monitoring is the Watchtower.)*
 
+## Probe — active adversarial testing
+
+`probe` doesn't read descriptions — it **attacks the server**. It generates malformed, oversized, type-violating, path-traversal, template, and prompt-injection inputs *from each tool's own schema*, fires them, and analyzes the responses for **crashes, secret leaks, injection echo, weak validation, and DoS latency**.
+
+```bash
+mcpcert probe "npx -y your-mcp-server"        # read-only tools only (safe default)
+mcpcert probe "npx -y your-mcp-server" --include-mutating   # ⚠ also calls write/delete/exec tools
+```
+
+By default it **skips tools that can write/delete/exec** (per the capability classifier) — those are only probed with `--include-mutating`, which really invokes them. Deterministic; exits non-zero on any finding.
+
 ## CI (GitHub Action)
 
 Gate your MCP server's trust score on every PR:
@@ -115,6 +126,8 @@ Works with `score`, `doctor`, `report`, `run`, and `diff`.
 - [x] `mcpcert snapshot` / `diff` — drift / rug-pull detection
 - [x] `mcpcert report` — Markdown certification report + capability-risk audit
 - [x] richer `run` assertions — structured fields, latency budgets, secret-leak
+- [x] `mcpcert probe` — active adversarial fuzzing + injection/leak/crash analysis
+- [x] library API (`import { ... } from "mcpcert"`) + Watchtower (self-hostable drift monitor)
 - [ ] Recorded, advisory semantic (LLM) assertions for `run`
 - [ ] JUnit / SARIF reporters + a GitHub Action
 - [ ] Watchtower — hosted, deterministic drift monitoring of the upstream servers you depend on

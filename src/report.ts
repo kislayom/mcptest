@@ -1,5 +1,6 @@
 import pc from "picocolors";
 import type { DriftReport } from "./drift.js";
+import type { ProbeReport } from "./probe.js";
 import type { CertResult } from "./score.js";
 import type { TestResult } from "./run.js";
 import type { DoctorResult, Severity } from "./types.js";
@@ -78,5 +79,24 @@ export function printDrift(report: DriftReport): void {
     ? pc.red(pc.bold(`  DRIFT DETECTED — possible rug-pull (${report.changes.length} change(s))`))
     : pc.yellow(pc.bold(`  drift detected (${report.changes.length} change(s))`));
   out.push("", head, "");
+  process.stdout.write(out.join("\n") + "\n");
+}
+
+export function printProbe(report: ProbeReport): void {
+  const out: string[] = ["", pc.bold(`mcpcert probe — ${report.target}`)];
+  out.push(pc.dim(`  probed ${report.toolsProbed} tool(s), skipped ${report.toolsSkipped} mutating, ran ${report.probesRun} probe(s)`), "");
+
+  if (report.findings.length === 0) {
+    out.push(pc.green("  ✔ no vulnerabilities found"), "");
+    process.stdout.write(out.join("\n") + "\n");
+    return;
+  }
+
+  for (const f of report.findings) {
+    const hard = f.vuln === "crash" || f.vuln === "leak" || f.vuln === "injection-echo";
+    const tag = hard ? pc.red(`✘ ${f.vuln}`) : pc.yellow(`▲ ${f.vuln}`);
+    out.push(`  ${tag}  ${f.tool} [${f.category}]  ${pc.dim(f.detail)}`);
+  }
+  out.push("", pc.red(pc.bold(`  ${report.findings.length} finding(s)`)), "");
   process.stdout.write(out.join("\n") + "\n");
 }
