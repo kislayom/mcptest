@@ -139,6 +139,20 @@ Gate your MCP server's trust score on every PR:
 
 Works with `score`, `doctor`, `report`, `run`, and `diff`.
 
+## GitHub code scanning (SARIF)
+
+`mcpcert sarif` runs `doctor` + `probe` and emits a single [SARIF 2.1.0](https://sarifweb.azurewebsites.net/) file, so your MCP server's conformance and security findings show up as alerts in the repo's **Security** tab and inline on PRs:
+
+```yaml
+- run: npx mcpcert sarif "npx -y your-mcp-server" -o mcpcert.sarif
+  continue-on-error: true            # let the upload run even when findings exist
+- uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: mcpcert.sarif
+```
+
+Add `--no-probe` for a conformance-only scan (no tool calls), or `--include-mutating` to also probe write/delete/exec tools.
+
 ## Roadmap
 
 - [x] `doctor` — HTTP reachability, discovery manifest, CORS
@@ -156,8 +170,9 @@ Works with `score`, `doctor`, `report`, `run`, and `diff`.
 - [x] `mcpcert probe` — active adversarial fuzzing + injection/leak/crash analysis
 - [x] threat-model-grounded **security grade** — six dimensions, blast-radius weighting, confirmed-exploit caps, `--probe`-backed; versioned rubric in [SCORING.md](./docs/SCORING.md)
 - [x] library API (`import { ... } from "mcpcert"`) + Watchtower (self-hostable drift monitor)
-- [ ] Recorded, advisory semantic (LLM) assertions for `run`
-- [ ] JUnit / SARIF reporters + a GitHub Action
+- [x] JUnit + **SARIF** reporters + GitHub Action — `mcpcert sarif` for code-scanning
+- [x] advisory semantic drift (`diff --semantic`) — local embedding model, off the deterministic path
+- [ ] auth / transport security checks for remote (HTTP) servers
 - [ ] Watchtower — hosted, deterministic drift monitoring of the upstream servers you depend on
 
 ## Development

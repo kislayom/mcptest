@@ -10,17 +10,20 @@ import { probeServer } from "./probe.js";
 import { printDrift, printProbe, printReport, printRun, printScore, printSemantic } from "./report.js";
 import { loadTestFiles, runTestFile, type TestResult } from "./run.js";
 import { leaderboardTable, scanTargets } from "./scan.js";
+import { sarifReport } from "./sarif.js";
 import { badgeMarkdown, certify } from "./score.js";
 import { assessRisks } from "./security.js";
 import { annotateSemanticDrift } from "./semantic.js";
 import { listToolsOf } from "./transport.js";
+
+const VERSION = "0.14.0";
 
 const program = new Command();
 
 program
   .name("mcpcert")
   .description("The test suite + trust layer for MCP servers")
-  .version("0.13.2");
+  .version(VERSION);
 
 program
   .command("doctor")
@@ -162,6 +165,27 @@ program
     }
     // Exit code stays deterministic — the advisory layer never gates CI.
     process.exit(report.drifted ? 1 : 0);
+  });
+
+program
+  .command("sarif")
+  .argument("<target>", "MCP server URL (http/https) or a stdio command (quote it)")
+  .description("Run doctor + probe and emit one SARIF 2.1.0 file for GitHub code scanning")
+  .option("-o, --out <file>", "write the SARIF to a file (default: stdout)")
+  .option("--no-probe", "conformance only — skip the active probe (which calls tools)")
+  .option("--include-mutating", "also probe write/delete/exec tools — DANGEROUS, it really calls them")
+  .action(async (target: string, opts: { out?: string; probe?: boolean; includeMutating?: boolean }) => {
+    const doctor = await runDoctor(target);
+    const probe = opts.probe === false ? undefined : await probeServer(target, { includeMutating: opts.includeMutating });
+    const out = sarifReport({ target, toolVersion: VERSION, doctor, probe });
+    if (opts.out) {
+      writeFileSync(opts.out, out);
+      process.stderr.write(`SARIF written to ${opts.out}\n`);
+    } else {
+      process.stdout.write(out);
+    }
+    const hardFail = doctor.checks.some((c) => c.severity === "fail") || (probe?.findings.length ?? 0) > 0;
+    process.exit(hardFail ? 1 : 0);
   });
 
 program.parseAsync(process.argv).catch((err: unknown) => {

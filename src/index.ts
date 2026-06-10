@@ -12,6 +12,8 @@ export { certificationMarkdown } from "./markdown.js";
 export type { ReportInput } from "./markdown.js";
 export { checkExpectations, getByPath, loadTestFiles, runTestFile } from "./run.js";
 export type { CallOutcome, Expectation, TestCase, TestFile, TestResult } from "./run.js";
+export { sarifReport } from "./sarif.js";
+export type { SarifInput } from "./sarif.js";
 export { leaderboardTable, rankCerts, scanTargets } from "./scan.js";
 export { badgeMarkdown, badgeUrl, CERT_THRESHOLD, certify, gradeFor } from "./score.js";
 export type { CertResult } from "./score.js";
