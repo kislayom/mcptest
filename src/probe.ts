@@ -7,7 +7,6 @@ import { openClient } from "./transport.js";
 export type Vuln =
   | "crash"
   | "leak"
-  | "injection-echo"
   | "weak-validation"
   | "slow"
   | "path-traversal"
@@ -90,10 +89,6 @@ export function analyzeProbe(tool: string, probe: Probe, o: ProbeOutcome): Probe
 
   const leak = secretIn(o.resultText);
   if (leak) findings.push(f("leak", `output leaked a ${leak}`));
-
-  if (probe.category === "injection" && !o.errored && /ignore all previous instructions|system prompt|reveal your/i.test(o.resultText)) {
-    findings.push(f("injection-echo", "a successful response reflected the injected instruction (indirect-injection vector)"));
-  }
 
   if (o.latencyMs > SLOW_MS) {
     findings.push(f("slow", `took ${o.latencyMs}ms (denial-of-service surface)`));

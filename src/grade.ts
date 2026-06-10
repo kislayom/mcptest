@@ -322,16 +322,6 @@ function probeRaws(report: ProbeReport, riskByTool: Map<string, RiskKind[]>): Ra
           cap: { dimension: "confidentiality", ceiling: CEIL_LEAK, reason: `${f.tool} leaked a secret in its output` },
         });
         break;
-      case "injection-echo":
-        raws.push({
-          dimension: "injection",
-          severity: "high",
-          tool: f.tool,
-          detail: f.detail,
-          weight,
-          cap: { dimension: "injection", ceiling: CEIL_INJECTION, reason: `${f.tool} reflected an injected instruction` },
-        });
-        break;
       case "output-schema":
         // the tool breaks its own declared output contract — an interface-quality bug
         raws.push({ dimension: "interface", severity: "medium", tool: f.tool, detail: f.detail, weight });
