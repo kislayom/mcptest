@@ -1,6 +1,7 @@
 import pc from "picocolors";
 import type { DriftReport } from "./drift.js";
 import type { ProbeReport } from "./probe.js";
+import type { SemanticAnnotation } from "./semantic.js";
 import type { CertResult } from "./score.js";
 import type { TestResult } from "./run.js";
 import type { DoctorResult, Severity } from "./types.js";
@@ -108,6 +109,25 @@ export function printDrift(report: DriftReport): void {
     ? pc.red(pc.bold(`  DRIFT DETECTED — possible rug-pull (${report.changes.length} change(s))`))
     : pc.yellow(pc.bold(`  drift detected (${report.changes.length} change(s))`));
   out.push("", head, "");
+  process.stdout.write(out.join("\n") + "\n");
+}
+
+export function printSemantic(annotations: SemanticAnnotation[]): void {
+  const out: string[] = ["", pc.bold("  semantic drift"), pc.dim("  advisory · non-deterministic · model: all-MiniLM-L6-v2 (local)")];
+  if (annotations.length === 0) {
+    out.push(pc.dim("  no description changes to analyze"), "");
+    process.stdout.write(out.join("\n") + "\n");
+    return;
+  }
+  out.push("");
+  for (const a of annotations) {
+    const v = a.verdict;
+    const tag =
+      v.advisory === "high" ? pc.red(`⚠ ${v.kind}`) : v.advisory === "warn" ? pc.yellow(`~ ${v.kind}`) : pc.blue(`· ${v.kind}`);
+    out.push(`  ${tag}  ${a.tool}  ${pc.dim(`(similarity ${v.similarity.toFixed(2)})`)}`);
+    out.push(pc.dim(`      ${v.note}`));
+  }
+  out.push("");
   process.stdout.write(out.join("\n") + "\n");
 }
 

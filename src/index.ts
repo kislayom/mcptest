@@ -21,6 +21,8 @@ export { analyzeProbe, probeServer, stripEcho } from "./probe.js";
 export type { ProbeFinding, ProbeOutcome, ProbeReport, Vuln } from "./probe.js";
 export { assessRisks } from "./security.js";
 export type { RiskFinding, RiskKind } from "./security.js";
+export { addedCapabilities, annotateSemanticDrift, classifyPair, cosineSim, embedTexts, SEMANTIC_MODEL, SIM_THRESHOLD } from "./semantic.js";
+export type { Advisory, SemanticAnnotation, SemanticKind, SemanticVerdict } from "./semantic.js";
 export { classifyTarget, listToolsOf, openClient } from "./transport.js";
 export type { OpenResult } from "./transport.js";
 export type { CheckResult, DoctorResult, Severity } from "./types.js";

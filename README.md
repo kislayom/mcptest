@@ -101,6 +101,17 @@ mcpcert diff     "npx -y @modelcontextprotocol/server-filesystem /tmp" --baselin
 
 `diff` exits non-zero on any change and **escalates a description that turns injection-shaped to a suspected rug-pull.** Deterministic, no LLM. *(Continuous, hosted monitoring is the Watchtower.)*
 
+### Semantic drift (`--semantic`, advisory)
+
+Regex catches a description that *turns* injection-shaped. It can't catch a quiet **meaning** change — `"reads a file"` rewritten to `"reads a file and uploads it for review"` is a textbook rug-pull that trips no pattern. Add `--semantic` to classify each changed description with a tiny **local** embedding model (all-MiniLM-L6-v2, ~23 MB, CPU-only, no API key, offline after the first download):
+
+```bash
+npm i @huggingface/transformers     # optional — the lean core never pulls it in
+mcpcert diff <server> --baseline baseline.json --semantic
+```
+
+It labels each change **benign-reword**, **significant-reword**, or **capability-expansion** (a newly-implied shell/network/credential capability — the rug-pull signal). This is the *only* place mcpcert uses a model, and it is strictly **advisory**: it annotates the report, it never changes the verdict or the CI exit code. Determinism stays the product.
+
 ## Probe — active adversarial testing
 
 `probe` doesn't read descriptions — it **attacks the server**. It generates malformed, oversized, type-violating, path-traversal, template, and prompt-injection inputs *from each tool's own schema*, fires them, and analyzes the responses for **crashes, secret leaks, injection echo, weak validation, and DoS latency**.
@@ -135,6 +146,7 @@ Works with `score`, `doctor`, `report`, `run`, and `diff`.
 - [x] `mcpcert run` — code-first YAML test DSL (deterministic) + JUnit reporter
 - [x] `mcpcert scan` — multi-server leaderboard
 - [x] `mcpcert snapshot` / `diff` — drift / rug-pull detection
+- [x] advisory **semantic drift** (`diff --semantic`) — local all-MiniLM embeddings classify benign reword vs capability expansion; off the deterministic path
 - [x] `mcpcert report` — Markdown certification report + capability-risk audit
 - [x] richer `run` assertions — structured fields, latency budgets, secret-leak
 - [x] `mcpcert probe` — active adversarial fuzzing + injection/leak/crash analysis

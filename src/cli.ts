@@ -7,11 +7,12 @@ import { runDoctor } from "./doctor.js";
 import { junitXml } from "./junit.js";
 import { certificationMarkdown } from "./markdown.js";
 import { probeServer } from "./probe.js";
-import { printDrift, printProbe, printReport, printRun, printScore } from "./report.js";
+import { printDrift, printProbe, printReport, printRun, printScore, printSemantic } from "./report.js";
 import { loadTestFiles, runTestFile, type TestResult } from "./run.js";
 import { leaderboardTable, scanTargets } from "./scan.js";
 import { badgeMarkdown, certify } from "./score.js";
 import { assessRisks } from "./security.js";
+import { annotateSemanticDrift } from "./semantic.js";
 import { listToolsOf } from "./transport.js";
 
 const program = new Command();
@@ -19,7 +20,7 @@ const program = new Command();
 program
   .name("mcpcert")
   .description("The test suite + trust layer for MCP servers")
-  .version("0.9.0");
+  .version("0.10.0");
 
 program
   .command("doctor")
@@ -147,11 +148,19 @@ program
   .requiredOption("--baseline <file>", "a snapshot file produced by 'mcpcert snapshot'")
   .description("Detect drift: compare a live server against a saved snapshot (the rug-pull check)")
   .option("--json", "output machine-readable JSON")
-  .action(async (target: string, opts: { baseline: string; json?: boolean }) => {
+  .option("--semantic", "advisory: classify changed descriptions with a local model (needs @huggingface/transformers)")
+  .action(async (target: string, opts: { baseline: string; json?: boolean; semantic?: boolean }) => {
     const baseline = JSON.parse(readFileSync(opts.baseline, "utf8")) as Snapshot;
-    const report = diffSnapshots(baseline, await snapshot(target));
-    if (opts.json) process.stdout.write(JSON.stringify(report, null, 2) + "\n");
-    else printDrift(report);
+    const current = await snapshot(target);
+    const report = diffSnapshots(baseline, current);
+    const semantic = opts.semantic ? await annotateSemanticDrift(baseline, current, report) : undefined;
+    if (opts.json) {
+      process.stdout.write(JSON.stringify(semantic ? { ...report, semantic } : report, null, 2) + "\n");
+    } else {
+      printDrift(report);
+      if (semantic) printSemantic(semantic);
+    }
+    // Exit code stays deterministic — the advisory layer never gates CI.
     process.exit(report.drifted ? 1 : 0);
   });
 
