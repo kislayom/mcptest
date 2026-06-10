@@ -20,7 +20,7 @@ const program = new Command();
 program
   .name("mcpcert")
   .description("The test suite + trust layer for MCP servers")
-  .version("0.13.1");
+  .version("0.13.2");
 
 program
   .command("doctor")
