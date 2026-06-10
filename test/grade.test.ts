@@ -92,6 +92,22 @@ describe("grade", () => {
     expect(g.certified).toBe(false); // ...but a failed dimension blocks the badge
   });
 
+  it("assesses the transport dimension only for http targets", () => {
+    const stdio = grade({ doctor: doctor(CLEAN) }); // target "demo" -> stdio
+    expect(byDim(stdio).transport.assessed).toBe(false);
+
+    const checks: CheckResult[] = [
+      ...CLEAN,
+      { id: "transport_tls", title: "tls", severity: "warn", detail: "plaintext to remote host", points: 0, maxPoints: 3 },
+      { id: "auth_open", title: "auth", severity: "warn", detail: "risky tools, no credentials", points: 0, maxPoints: 4 },
+    ];
+    const http = grade({
+      doctor: { target: "http://api.example.com/mcp", startedAt: "t", checks, score: 0, maxScore: 0, tools: [{ name: "run_command", description: "shell" }] },
+    });
+    expect(byDim(http).transport.assessed).toBe(true);
+    expect(byDim(http).transport.score).toBe(64); // 100 - 18 - 18 (two medium findings)
+  });
+
   it("a secret leaked at runtime caps confidentiality-driven grade and decertifies", () => {
     const g = grade({ doctor: doctor(CLEAN), probe: probe([{ tool: "get_thing", category: "valid", vuln: "leak", detail: "output leaked an OpenAI-style API key" }]) });
     expect(g.score).toBeLessThanOrEqual(40);

@@ -172,7 +172,7 @@ Add `--no-probe` for a conformance-only scan (no tool calls), or `--include-muta
 - [x] library API (`import { ... } from "mcpcert"`) + Watchtower (self-hostable drift monitor)
 - [x] JUnit + **SARIF** reporters + GitHub Action — `mcpcert sarif` for code-scanning
 - [x] advisory semantic drift (`diff --semantic`) — local embedding model, off the deterministic path
-- [ ] auth / transport security checks for remote (HTTP) servers
+- [x] auth / transport security checks for remote (HTTP) servers — TLS + unauthenticated high-capability exposure, as a 7th grade dimension
 - [ ] Watchtower — hosted, deterministic drift monitoring of the upstream servers you depend on
 
 ## Development

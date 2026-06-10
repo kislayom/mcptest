@@ -1,5 +1,7 @@
 import { fail, finalize, pass, warn } from "./check.js";
+import type { Tool } from "./lint.js";
 import { classifyTarget, runProtocolChecks } from "./protocol.js";
+import { assessRisks } from "./security.js";
 import type { CheckResult, DoctorResult } from "./types.js";
 
 /**
@@ -18,6 +20,9 @@ export async function runDoctor(target: string): Promise<DoctorResult> {
   }
   const proto = await runProtocolChecks(target);
   checks.push(...proto.checks);
+  if (classifyTarget(target) === "http") {
+    checks.push(...authTransportChecks(target, proto.tools));
+  }
 
   return finalize(target, startedAt, checks, proto.tools);
 }
@@ -61,6 +66,59 @@ export async function httpChecks(target: string): Promise<CheckResult[]> {
   }
 
   return checks;
+}
+
+/**
+ * Auth + transport posture for HTTP targets. Deterministic and conservative —
+ * it only flags what it can actually observe (plaintext to a remote host; that we
+ * reached the server with no credentials at all). Loopback is exempt: local dev
+ * servers over plain http with no auth are normal, not a finding.
+ */
+export function authTransportChecks(target: string, tools: Tool[]): CheckResult[] {
+  const checks: CheckResult[] = [];
+  let url: URL;
+  try {
+    url = new URL(target);
+  } catch {
+    return checks;
+  }
+  const loopback = isLoopback(url.hostname);
+
+  if (url.protocol === "https:") {
+    checks.push(pass("transport_tls", "Encrypted transport (HTTPS)", "served over TLS", 3));
+  } else if (loopback) {
+    checks.push(pass("transport_tls", "Encrypted transport (HTTPS)", "plaintext is fine for a loopback address", 3));
+  } else {
+    checks.push(
+      warn("transport_tls", "Encrypted transport (HTTPS)", `served over plaintext http:// to remote host ${url.hostname} — requests and any tokens travel in the clear`, 0, 3),
+    );
+  }
+
+  // We connected with no credentials; if that succeeded and high-capability tools
+  // are advertised to a non-loopback host, that's real exposure.
+  const riskyTools = [...new Set(assessRisks(tools).map((r) => r.tool))];
+  if (loopback) {
+    checks.push(pass("auth_open", "High-capability tools require authentication", "loopback address — local access only", 4));
+  } else if (riskyTools.length > 0) {
+    checks.push(
+      warn("auth_open", "High-capability tools require authentication", `reached with no credentials; ${riskyTools.length} high-capability tool(s) exposed to the network: ${riskyTools.slice(0, 5).join(", ")}`, 0, 4),
+    );
+  } else {
+    checks.push(pass("auth_open", "High-capability tools require authentication", "no elevated-capability tools advertised", 4));
+  }
+
+  return checks;
+}
+
+function isLoopback(hostname: string): boolean {
+  return (
+    hostname === "localhost" ||
+    hostname === "::1" ||
+    hostname === "[::1]" ||
+    hostname === "0.0.0.0" ||
+    /^127\./.test(hostname) ||
+    hostname.endsWith(".local")
+  );
 }
 
 async function timed<T>(fn: () => Promise<T>): Promise<{ value?: T; error?: string; ms: number }> {

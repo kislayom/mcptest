@@ -48,7 +48,7 @@ describe("certify", () => {
   it("attaches the explainable breakdown", () => {
     const c = certify(doctor(CLEAN));
     expect(c.breakdown?.rubric).toBeDefined();
-    expect(c.breakdown?.dimensions.length).toBe(6);
+    expect(c.breakdown?.dimensions.length).toBe(7);
   });
 });
 

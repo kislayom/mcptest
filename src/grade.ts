@@ -36,7 +36,8 @@ export type Dimension =
   | "injection"
   | "robustness"
   | "confidentiality"
-  | "exploitation";
+  | "exploitation"
+  | "transport";
 
 export type GradeSeverity = "critical" | "high" | "medium" | "low";
 export type Letter = "A" | "B" | "C" | "D" | "F";
@@ -93,6 +94,7 @@ const TITLE: Record<Dimension, string> = {
   robustness: "Input robustness",
   confidentiality: "Confidentiality",
   exploitation: "Exploitation",
+  transport: "Transport & auth",
 };
 
 /** Base penalty per severity, before blast-radius weighting. See SCORING.md. */
@@ -100,12 +102,13 @@ const BASE: Record<GradeSeverity, number> = { critical: 60, high: 35, medium: 18
 
 /** Relative importance of each dimension (renormalised over the assessed ones). */
 const DIM_WEIGHT: Record<Dimension, number> = {
-  conformance: 0.2,
-  interface: 0.15,
-  injection: 0.2,
-  robustness: 0.15,
-  confidentiality: 0.15,
-  exploitation: 0.15,
+  conformance: 0.18,
+  interface: 0.13,
+  injection: 0.18,
+  robustness: 0.13,
+  confidentiality: 0.13,
+  exploitation: 0.13,
+  transport: 0.12,
 };
 
 /** Blast radius: how much worse a flaw is on a high-capability tool. */
@@ -168,9 +171,11 @@ export function grade({ doctor, probe }: GradeInput): SecurityGrade {
   //  - robustness/exploitation need an active probe that actually fired.
   const probed = probe != null && probe.probesRun > 0;
   const hasTools = (doctor.tools ?? []).length > 0;
+  const httpTarget = isHttpTarget(doctor.target);
   const isAssessed = (d: Dimension): boolean => {
     if (d === "robustness" || d === "exploitation") return probed;
     if (d === "interface" || d === "injection" || d === "confidentiality") return hasTools;
+    if (d === "transport") return httpTarget; // stdio servers have no network transport / auth
     return true; // conformance
   };
 
@@ -251,6 +256,10 @@ function checkRaws(c: CheckResult): Raw[] {
       return [{ dimension: "conformance", severity: "low", detail: c.detail }];
     case "cors_headers":
       return [{ dimension: "interface", severity: "low", detail: c.detail }];
+    case "transport_tls":
+      return [{ dimension: "transport", severity: "medium", detail: c.detail }];
+    case "auth_open":
+      return [{ dimension: "transport", severity: "medium", detail: c.detail }];
     case "tool_schemas":
       return [{ dimension: "interface", severity: "medium", detail: c.detail }];
     case "tool_descriptions":
@@ -341,4 +350,13 @@ function capabilityWeight(tool: string, riskByTool: Map<string, RiskKind[]>): nu
   let w = 1;
   for (const k of riskByTool.get(tool) ?? []) w = Math.max(w, RISK_WEIGHT[k] ?? 1);
   return w;
+}
+
+function isHttpTarget(target: string): boolean {
+  try {
+    const u = new URL(target);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
 }

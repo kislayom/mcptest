@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { httpChecks } from "../src/doctor";
+import { authTransportChecks, httpChecks } from "../src/doctor";
+import type { Tool } from "../src/lint";
 
 /** Build a minimal fetch Response stand-in. */
 function res(opts: { ok?: boolean; status?: number; headers?: Record<string, string>; text?: string }): Response {
@@ -65,5 +66,27 @@ describe("httpChecks", () => {
     );
     const by = sev(await httpChecks("https://bad-manifest.example"));
     expect(by["manifest_valid"]).toBe("fail");
+  });
+});
+
+describe("authTransportChecks", () => {
+  const risky: Tool[] = [{ name: "run_command", description: "execute a shell command" }];
+  const benign: Tool[] = [{ name: "get_weather", description: "returns the weather" }];
+
+  it("passes TLS for https and warns on plaintext to a remote host", () => {
+    expect(sev(authTransportChecks("https://api.example.com/mcp", benign))["transport_tls"]).toBe("pass");
+    expect(sev(authTransportChecks("http://api.example.com/mcp", benign))["transport_tls"]).toBe("warn");
+  });
+
+  it("exempts loopback from both checks (local dev is fine)", () => {
+    const by = sev(authTransportChecks("http://localhost:3001/mcp", risky));
+    expect(by["transport_tls"]).toBe("pass");
+    expect(by["auth_open"]).toBe("pass");
+  });
+
+  it("warns when high-capability tools are exposed to a remote host without credentials", () => {
+    expect(sev(authTransportChecks("https://api.example.com/mcp", risky))["auth_open"]).toBe("warn");
+    // ...but a remote server with only benign tools is not flagged
+    expect(sev(authTransportChecks("https://api.example.com/mcp", benign))["auth_open"]).toBe("pass");
   });
 });

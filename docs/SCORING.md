@@ -19,12 +19,13 @@ server works at all:
 
 | Dimension | Threat it measures | Weight |
 | --- | --- | ---: |
-| **Protocol conformance** | Does it speak MCP at all? An unreachable server or a broken `tools/list` is unusable. | 20% |
-| **Interface quality** | Loose, untyped, undocumented schemas → the agent misuses tools and the input attack surface widens. | 15% |
-| **Injection resistance** | A tool *description* that says "ignore previous instructions" (tool poisoning), or a tool that reflects an injected instruction back into the agent (indirect injection). | 20% |
-| **Input robustness** | Does it handle malformed / oversized / wrong-type input gracefully, or crash / accept garbage (DoS)? | 15% |
-| **Confidentiality** | Does it leak secrets — in a description or, worse, in a tool result at runtime? | 15% |
-| **Exploitation** | Confirmed active exploits: command execution, path traversal, SSRF to cloud metadata. | 15% |
+| **Protocol conformance** | Does it speak MCP at all? An unreachable server or a broken `tools/list` is unusable. | 18% |
+| **Interface quality** | Loose, untyped, undocumented schemas → the agent misuses tools and the input attack surface widens. | 13% |
+| **Injection resistance** | A tool *description* that says "ignore previous instructions" — tool poisoning. | 18% |
+| **Input robustness** | Does it handle malformed / oversized / wrong-type input gracefully, or crash / accept garbage (DoS)? | 13% |
+| **Confidentiality** | Does it leak secrets — in a description or, worse, in a tool result at runtime? | 13% |
+| **Exploitation** | Confirmed active exploits: command execution, path traversal, SSRF to cloud metadata. | 13% |
+| **Transport & auth** | (HTTP only) Plaintext transport to a remote host, or high-capability tools reachable with no credentials. | 12% |
 
 Weights sum to 100%. They are **renormalised across the dimensions we actually
 assessed** (see "Honesty" below), so a passive scan is averaged only over the
@@ -96,6 +97,8 @@ We never claim a server is robust on evidence we don't have.
   assessed** and excluded from the average — not silently scored 100.
 - **Interface / Injection / Confidentiality** need a tool list to judge. A server
   that never returned one (or exposes no tools) leaves them **not assessed**.
+- **Transport & auth** only applies to HTTP(S) targets — a local stdio server has
+  no network transport or auth surface, so it's **not assessed** there.
 - **Protocol conformance** is always assessed, because we always try to connect.
 
 This means a passive `mcpcert score` is a *conformance grade*; a `--probe` run is a
