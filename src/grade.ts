@@ -27,6 +27,8 @@ import type { CheckResult, DoctorResult } from "./types.js";
 
 export const RUBRIC_VERSION = "1.0";
 export const CERT_THRESHOLD = 80;
+/** No single assessed dimension may fall below this and still be Certified. */
+export const CERT_DIM_FLOOR = 50;
 
 export type Dimension =
   | "conformance"
@@ -212,13 +214,16 @@ export function grade({ doctor, probe }: GradeInput): SecurityGrade {
 
   const score = Math.round(clamp(overall));
   const seriousFinding = raws.some((r) => r.severity === "critical" || r.severity === "high");
+  // A single badly-failing dimension blocks the badge even if the average is fine —
+  // "Certified" should mean nothing is broken, not just that most things work.
+  const dimFloorOk = assessedDims.every((d) => d.score >= CERT_DIM_FLOOR);
 
   return {
     target: doctor.target,
     rubric: RUBRIC_VERSION,
     score,
     grade: gradeLetter(score),
-    certified: score >= CERT_THRESHOLD && caps.length === 0 && !seriousFinding,
+    certified: score >= CERT_THRESHOLD && caps.length === 0 && !seriousFinding && dimFloorOk,
     dimensions: dimensions.map((d) => ({ ...d, weight: d.assessed ? round2(d.weight / wsum) : 0 })),
     caps,
     assessed: { protocol: true, probe: probed },
@@ -326,6 +331,10 @@ function probeRaws(report: ProbeReport, riskByTool: Map<string, RiskKind[]>): Ra
           weight,
           cap: { dimension: "injection", ceiling: CEIL_INJECTION, reason: `${f.tool} reflected an injected instruction` },
         });
+        break;
+      case "output-schema":
+        // the tool breaks its own declared output contract — an interface-quality bug
+        raws.push({ dimension: "interface", severity: "medium", tool: f.tool, detail: f.detail, weight });
         break;
       case "weak-validation":
         raws.push({ dimension: "robustness", severity: "medium", tool: f.tool, detail: f.detail, weight });

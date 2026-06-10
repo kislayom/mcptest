@@ -76,14 +76,16 @@ sets a **ceiling on the whole score**, and the lowest ceiling wins:
 
 ## Certification
 
-A server is **Certified** only when all three hold:
+A server is **Certified** only when all four hold:
 
 1. score ≥ 80, **and**
 2. no cap was triggered, **and**
-3. no critical or high-severity finding in any assessed dimension.
+3. no critical or high-severity finding in any assessed dimension, **and**
+4. no assessed dimension scores below 50 — one badly-failing dimension blocks the
+   badge even if the weighted average is high.
 
 A low or medium finding lowers the score but does not, by itself, block
-certification.
+certification — unless enough of them sink a single dimension below the floor.
 
 ## Honesty — "not assessed" is not "passed"
 

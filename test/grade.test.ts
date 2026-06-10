@@ -83,6 +83,15 @@ describe("grade", () => {
     expect(byDim(passive).robustness.weight).toBe(0);
   });
 
+  it("refuses to certify when a single dimension fails badly, even if the average clears 80", () => {
+    // many medium weak-validations sink robustness to 0 while the average stays >= 80
+    const findings: ProbeFinding[] = Array.from({ length: 8 }, (_, i) => ({ tool: "t", category: "oversized", vuln: "weak-validation", detail: `bad input ${i}` }));
+    const g = grade({ doctor: doctor(CLEAN), probe: probe(findings) });
+    expect(byDim(g).robustness.score).toBe(0);
+    expect(g.score).toBeGreaterThanOrEqual(80); // average still clears the threshold
+    expect(g.certified).toBe(false); // ...but a failed dimension blocks the badge
+  });
+
   it("a secret leaked at runtime caps confidentiality-driven grade and decertifies", () => {
     const g = grade({ doctor: doctor(CLEAN), probe: probe([{ tool: "get_thing", category: "valid", vuln: "leak", detail: "output leaked an OpenAI-style API key" }]) });
     expect(g.score).toBeLessThanOrEqual(40);

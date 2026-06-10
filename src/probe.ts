@@ -12,7 +12,8 @@ export type Vuln =
   | "slow"
   | "path-traversal"
   | "command-exec"
-  | "ssrf";
+  | "ssrf"
+  | "output-schema";
 
 export interface ProbeFinding {
   tool: string;
@@ -76,6 +77,15 @@ export function analyzeProbe(tool: string, probe: Probe, o: ProbeOutcome): Probe
 
   if (probe.expect === "graceful-error" && !o.errored) {
     findings.push(f("weak-validation", `accepted ${probe.note} without an error`));
+  }
+
+  // Output-schema conformance: when a valid call returns structuredContent that
+  // violates the tool's own declared outputSchema, the MCP client throws a
+  // specific error. That message ONLY appears for a real contract violation, so
+  // it's a true-positive conformance finding (checked on the valid baseline so it
+  // fires at most once per tool).
+  if (probe.category === "valid" && o.errored && /does not match the tool's output schema|has an output schema but did not return/i.test(o.resultText)) {
+    findings.push(f("output-schema", "structured output violates the tool's own declared outputSchema"));
   }
 
   const leak = secretIn(o.resultText);

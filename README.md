@@ -117,7 +117,7 @@ It labels each change **benign-reword**, **significant-reword**, or **capability
 
 ## Probe — active adversarial testing
 
-`probe` doesn't read descriptions — it **attacks the server**. It generates malformed, oversized, type-violating, path-traversal, template, and prompt-injection inputs *from each tool's own schema*, fires them, and analyzes the responses for **crashes, secret leaks, injection echo, weak validation, and DoS latency**.
+`probe` doesn't read descriptions — it **attacks the server**. It generates malformed, oversized, type-violating, path-traversal, template, and prompt-injection inputs *from each tool's own schema*, fires them, and analyzes the responses for **crashes, secret leaks, injection echo, weak validation, output-schema violations, and DoS latency**.
 
 ```bash
 mcpcert probe "npx -y your-mcp-server"        # read-only tools only (safe default)

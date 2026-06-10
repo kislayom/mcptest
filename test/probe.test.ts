@@ -72,4 +72,14 @@ describe("analyzeProbe", () => {
     const f = analyzeProbe("shell", p, outcome({ errored: false, resultText: "ran: x; id; cat /etc/passwd #\nuid=0(root) gid=0(root)" }));
     expect(f.some((x) => x.vuln === "command-exec")).toBe(true);
   });
+
+  it("flags an output-schema violation surfaced on a valid call", () => {
+    const f = analyzeProbe("get_stats", probe("valid", "ok"), outcome({ errored: true, resultText: "MCP error -32602: Structured content does not match the tool's output schema: data/count must be integer" }));
+    expect(f.some((x) => x.vuln === "output-schema")).toBe(true);
+  });
+
+  it("does NOT flag output-schema for an unrelated valid-call error", () => {
+    const f = analyzeProbe("t", probe("valid", "ok"), outcome({ errored: true, resultText: "ENOENT: no such file or directory" }));
+    expect(f.some((x) => x.vuln === "output-schema")).toBe(false);
+  });
 });
