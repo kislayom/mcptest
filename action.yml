@@ -8,7 +8,7 @@ inputs:
     description: "MCP server URL (http/https) or a stdio command"
     required: true
   command:
-    description: "mcpcert subcommand: score | doctor | report | run | diff"
+    description: "mcpcert subcommand: score | doctor | probe | report | run | scan | diff | sarif"
     required: false
     default: "score"
   args:

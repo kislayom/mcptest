@@ -4,6 +4,7 @@ import { Command } from "commander";
 import pc from "picocolors";
 import { diffSnapshots, snapshot, type Snapshot } from "./drift.js";
 import { runDoctor } from "./doctor.js";
+import { scaffoldTests } from "./init.js";
 import { junitXml } from "./junit.js";
 import { certificationMarkdown } from "./markdown.js";
 import { probeServer } from "./probe.js";
@@ -108,6 +109,22 @@ program
     }
     if (opts.reporter === "junit") process.stdout.write(junitXml("mcpcert", all));
     process.exit(all.some((r) => !r.passed) ? 1 : 0);
+  });
+
+program
+  .command("init")
+  .argument("<target>", "MCP server URL (http/https) or a stdio command (quote it)")
+  .description("Scaffold a *.mcpcert.yaml test file from a server's advertised tools")
+  .option("-o, --out <file>", "write the scaffold to a file (default: stdout)")
+  .action(async (target: string, opts: { out?: string }) => {
+    const tools = await listToolsOf(target);
+    const yaml = scaffoldTests(target, tools);
+    if (opts.out) {
+      writeFileSync(opts.out, yaml);
+      process.stderr.write(`scaffolded ${tools.length} test(s) to ${opts.out}\n`);
+    } else {
+      process.stdout.write(yaml);
+    }
   });
 
 program

@@ -55,6 +55,14 @@ Every weight, cap, and threshold is written down and versioned in **[docs/SCORIN
 mcpcert score --probe "node examples/vulnerable-server.mjs"   # → F, capped at 40
 ```
 
+## Scaffold tests (`init`)
+
+```bash
+mcpcert init "npx -y your-mcp-server" -o tests.mcpcert.yaml
+```
+
+Reads the server's tools and writes a runnable `*.mcpcert.yaml` — one test per tool, required fields filled with type-appropriate dummies, `valid_output` added where a tool declares an `outputSchema`. Tighten the example inputs, then `mcpcert run`.
+
 ## Test DSL (`run`)
 
 Write declarative tests next to your server in a `*.mcpcert.yaml` file:

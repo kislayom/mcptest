@@ -4,6 +4,7 @@ export { httpChecks, runDoctor } from "./doctor.js";
 export { diffSnapshots, fingerprintTools, snapshot } from "./drift.js";
 export type { ChangeKind, DriftChange, DriftReport, Snapshot, ToolFingerprint } from "./drift.js";
 export { grade, gradeLetter, RUBRIC_VERSION } from "./grade.js";
+export { scaffoldTests } from "./init.js";
 export type { CapHit, Deduction, Dimension, DimensionScore, GradeInput, GradeSeverity, Letter, SecurityGrade } from "./grade.js";
 export { junitXml } from "./junit.js";
 export { lintTools, schemaIssue, secretIn } from "./lint.js";
