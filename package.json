@@ -1,8 +1,8 @@
 {
   "name": "mcpcert",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "description": "The test suite + trust layer for MCP servers. Start with: mcpcert doctor <server>.",
-  "author": "Kislay Kumar <kislay.osho@gmail.com>",
+  "author": "Kislay Kumar",
   "homepage": "https://github.com/kislayom/mcpcert#readme",
   "repository": {
     "type": "git",
