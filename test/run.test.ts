@@ -44,6 +44,35 @@ describe("checkExpectations", () => {
     expect(checkExpectations({ name: "t", tool: "x", expect: { no_secret_leak: true } }, leaky).passed).toBe(false);
     expect(checkExpectations({ name: "t", tool: "x", expect: { no_secret_leak: true } }, ok).passed).toBe(true);
   });
+
+  it("validates structured output against the tool's declared outputSchema", () => {
+    const schema = { type: "object", required: ["ok"], properties: { ok: { type: "boolean" }, items: { type: "array", items: { type: "string" } } } };
+    const good: CallOutcome = { ...ok, outputSchema: schema };
+    expect(checkExpectations({ name: "t", tool: "x", expect: { valid_output: true } }, good).passed).toBe(true);
+
+    const bad: CallOutcome = { ...ok, structured: { ok: "yes", items: [1] }, outputSchema: schema };
+    const r = checkExpectations({ name: "t", tool: "x", expect: { valid_output: true } }, bad);
+    expect(r.passed).toBe(false);
+    expect(r.detail).toMatch(/violates its declared schema/);
+  });
+
+  it("surfaces a client-side output-schema error as a clean valid_output failure", () => {
+    const errOut: CallOutcome = {
+      errored: true,
+      errorMessage: "MCP error -32602: Structured content does not match the tool's output schema: data/count must be integer",
+      resultText: "",
+      latencyMs: 2,
+    };
+    const r = checkExpectations({ name: "t", tool: "x", expect: { valid_output: true } }, errOut);
+    expect(r.passed).toBe(false);
+    expect(r.detail).toMatch(/violates its declared schema/);
+  });
+
+  it("fails valid_output when the tool declares no outputSchema, or returned nothing structured", () => {
+    expect(checkExpectations({ name: "t", tool: "x", expect: { valid_output: true } }, ok).passed).toBe(false);
+    const noStruct: CallOutcome = { ...ok, structured: undefined, outputSchema: { type: "object" } };
+    expect(checkExpectations({ name: "t", tool: "x", expect: { valid_output: true } }, noStruct).passed).toBe(false);
+  });
 });
 
 describe("getByPath", () => {

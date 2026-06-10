@@ -4,6 +4,7 @@ import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { parse } from "yaml";
 import { secretIn } from "./lint.js";
 import { openClient } from "./transport.js";
+import { validate } from "./validate.js";
 
 export interface Expectation {
   /** Whether the call is expected to return an error (default: false). */
@@ -18,6 +19,8 @@ export interface Expectation {
   max_latency_ms?: number;
   /** The output must not contain any secret-shaped string. */
   no_secret_leak?: boolean;
+  /** The structured output must conform to the tool's declared `outputSchema`. */
+  valid_output?: boolean;
 }
 
 export interface TestCase {
@@ -37,6 +40,8 @@ export interface CallOutcome {
   errorMessage?: string;
   resultText: string;
   structured?: unknown;
+  /** The tool's declared outputSchema, if any (attached from tools/list). */
+  outputSchema?: unknown;
   latencyMs: number;
 }
 
@@ -51,6 +56,16 @@ export interface TestResult {
 export function checkExpectations(tc: TestCase, o: CallOutcome): { passed: boolean; detail: string } {
   const exp = tc.expect ?? {};
   const wantError = exp.error ?? false;
+
+  // valid_output runs first: the MCP client validates structured output against a
+  // tool's declared outputSchema and *throws* on a violation, so a real mismatch
+  // arrives as an error. Surface that as a clean schema failure before the generic
+  // success/error check — and still validate directly for any outcome the client
+  // did not pre-validate (library callers, non-validating clients, recorded runs).
+  if (exp.valid_output) {
+    const v = checkValidOutput(o);
+    if (v) return v;
+  }
 
   if (wantError !== o.errored) {
     return {
@@ -83,6 +98,25 @@ export function checkExpectations(tc: TestCase, o: CallOutcome): { passed: boole
   return { passed: true, detail: "ok" };
 }
 
+/**
+ * Returns a failure if structured output doesn't conform to its declared schema,
+ * or null if it conforms (so the caller continues with the other assertions).
+ * Handles both the client-threw-on-violation case and direct validation.
+ */
+function checkValidOutput(o: CallOutcome): { passed: boolean; detail: string } | null {
+  if (o.errored) {
+    if (/output schema|structured content/i.test(o.errorMessage ?? "")) {
+      return { passed: false, detail: `structured output violates its declared schema: ${o.errorMessage}` };
+    }
+    return null; // unrelated error — let the generic success/error check report it
+  }
+  if (o.outputSchema == null) return { passed: false, detail: "valid_output set, but the tool declares no outputSchema" };
+  if (o.structured === undefined) return { passed: false, detail: "tool declares an outputSchema but returned no structuredContent" };
+  const verrs = validate(o.outputSchema, o.structured);
+  if (verrs.length > 0) return { passed: false, detail: `structured output violates its declared schema: ${verrs[0].path} ${verrs[0].message}` };
+  return null;
+}
+
 export function getByPath(obj: unknown, path: string): unknown {
   return path.split(".").reduce<unknown>((acc, key) => {
     if (acc == null || typeof acc !== "object") return undefined;
@@ -109,8 +143,13 @@ export async function runTestFile(spec: TestFile, serverOverride?: string): Prom
   const results: TestResult[] = [];
   const opened = await openClient(server);
   try {
+    const listed = await opened.client.listTools();
+    const outputSchemas = new Map<string, unknown>(
+      listed.tools.map((t) => [t.name, (t as { outputSchema?: unknown }).outputSchema]),
+    );
     for (const tc of spec.tests ?? []) {
       const outcome = await callTool(opened.client, tc);
+      outcome.outputSchema = outputSchemas.get(tc.tool);
       const { passed, detail } = checkExpectations(tc, outcome);
       results.push({ name: tc.name, passed, detail, durationMs: outcome.latencyMs });
     }

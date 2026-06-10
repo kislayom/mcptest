@@ -25,4 +25,6 @@ export { addedCapabilities, annotateSemanticDrift, classifyPair, cosineSim, embe
 export type { Advisory, SemanticAnnotation, SemanticKind, SemanticVerdict } from "./semantic.js";
 export { classifyTarget, listToolsOf, openClient } from "./transport.js";
 export type { OpenResult } from "./transport.js";
+export { validate } from "./validate.js";
+export type { ValidationError } from "./validate.js";
 export type { CheckResult, DoctorResult, Severity } from "./types.js";

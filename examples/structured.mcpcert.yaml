@@ -1,0 +1,8 @@
+server: "node examples/structured-server.mjs"
+tests:
+  - name: get_user returns structured output that conforms to its declared schema
+    tool: get_user
+    input: { id: 1 }
+    expect:
+      error: false
+      valid_output: true   # structuredContent must match the tool's outputSchema

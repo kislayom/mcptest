@@ -70,6 +70,7 @@ tests:
       contains: "tmp"       # substring in the text output
       matches: "(?i)tmp"    # ...or a regex
       # fields: { ok: true }       # assert structured-output fields by dot-path
+      # valid_output: true         # structuredContent must conform to the tool's declared outputSchema
       # max_latency_ms: 2000       # performance budget
       # no_secret_leak: true       # output must not leak secret-shaped strings
 ```
@@ -80,6 +81,8 @@ mcpcert run --reporter junit > junit.xml # JUnit for CI
 ```
 
 Assertions are deterministic — no LLM in the path, so it never flakes.
+
+`valid_output` validates a tool's real structured output against the `outputSchema` it advertises — catching a server whose output has drifted from its own contract. (The MCP client validates this at call time too; mcpcert turns it into an explicit, clearly-reported assertion you can gate on in CI, and the validator ships as a reusable library export.)
 
 ## Leaderboard (`scan`)
 
@@ -149,6 +152,7 @@ Works with `score`, `doctor`, `report`, `run`, and `diff`.
 - [x] advisory **semantic drift** (`diff --semantic`) — local all-MiniLM embeddings classify benign reword vs capability expansion; off the deterministic path
 - [x] `mcpcert report` — Markdown certification report + capability-risk audit
 - [x] richer `run` assertions — structured fields, latency budgets, secret-leak
+- [x] `valid_output` — deterministic JSON-Schema validation of a tool's real structured output against its declared `outputSchema`
 - [x] `mcpcert probe` — active adversarial fuzzing + injection/leak/crash analysis
 - [x] threat-model-grounded **security grade** — six dimensions, blast-radius weighting, confirmed-exploit caps, `--probe`-backed; versioned rubric in [SCORING.md](./docs/SCORING.md)
 - [x] library API (`import { ... } from "mcpcert"`) + Watchtower (self-hostable drift monitor)
